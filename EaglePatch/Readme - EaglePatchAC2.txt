@@ -1,17 +1,20 @@
 EaglePatchAC2 is an ASI plugin that fixes a number of issues in Assassin's Creed II
 
-Plugin version: 1.1
+Plugin version: 1.2
 
 Features:
 - Improved shadow map size from 1024 to 4096 (only when shadow quality is maxed out in game's settings; can be disabled in ini)
 - Draw distance maxed out for buildings, peds and flags (can be disabled in ini)
 - Enables UPlay bonuses - Auditore Crypt, Altair robes, extra knifes, bonus dye (can be disabled in ini)
-- Added support of all XInput controllers (can be disabled in ini)
+- Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
 - Added detection of hotplugged controllers (can be disabled in ini)
 - Removed support of DInput controllers (can be disabled in ini)
 - Gamepad and kb/mouse controls work at the same time (read note below)
-- Added ini setting for enabling PS3-like controls
+- Added ini setting for enabling PS3/PS4/PS5-like controls (swapping bumpers and triggers)
 - Added ini setting to skip intro videos (without having to rename files)
+- Improved thread-safety in memory patching (prevents random startup crashes)
+- Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
+- Added robustness for gamepad hotplugging (prevents null dereferences on disconnect)
 
 Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC2.ini
 

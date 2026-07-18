@@ -394,7 +394,7 @@ void patch()
 	PatchBytes(sAddresses::_multisampling2, (unsigned char*)"\xb9\x01\x00\x00\x00\x90", 6);
 	Nop(sAddresses::_multisampling3, 3);
 
-	if (get_private_profile_bool("PS3Controls", FALSE))
+	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE))
 	{
 		PatchByte(sAddresses::_ps3_controls[0], 0x23);
 		PatchByte(sAddresses::_ps3_controls[1], 0x25);

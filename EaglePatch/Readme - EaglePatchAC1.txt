@@ -1,17 +1,19 @@
 EaglePatchAC1 is an ASI plugin that fixes a number of issues in Assassin's Creed: Director's Cut Edition
 
-Plugin version: 1.1
+Plugin version: 1.2
 
 Features:
 - Unlocked multisampling on high resolutions
-- Added support of all XInput controllers (can be disabled in ini)
+- Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
 - Added detection of hotplugged controllers (can be disabled in ini)
 - Removed support of DInput controllers (can be disabled in ini)
-- Removed telemetry
+- Removed telemetry (improved bypass in version 1.2)
 - Gamepad and kb/mouse controls work at the same time (read note below)
-- Added ini setting for enabling PS3-like controls
+- Added ini setting for enabling PS3/PS4/PS5-like controls (swapping bumpers and triggers)
 - Added ini setting to skip intro videos (without having to rename files)
 - Added ini setting to limit CPU cores the game can use (fixes game crashing at startup when using a CPU with a high core count)
+- Improved thread-safety in memory patching (prevents random startup crashes)
+- Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
 - [DX10 only] Fixed doubling of resolution modes in settings
 
 Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC1.ini

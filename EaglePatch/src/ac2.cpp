@@ -464,7 +464,7 @@ void patch()
 		InjectHook(sAddresses::_PadProxyPC_Patch, &scimitar::PadProxyPC::Update, PATCH_JUMP);
 	}
 
-	if (get_private_profile_bool("PS3Controls", FALSE))
+	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE))
 	{
 		PatchByte(sAddresses::_ps3_controls[0], 0x23);
 		PatchByte(sAddresses::_ps3_controls[1], 0x25);
