@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Windows.h>
+#include <windows.h>
 
 UINT get_private_profile_int(LPCTSTR lpKeyName, INT nDefault);
 
@@ -10,4 +10,4 @@ DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lp
 
 FLOAT get_private_profile_float(LPCTSTR lpKeyName, LPCTSTR lpDefault);
 
-void init_private_profile();
+void init_private_profile(HMODULE hModule);

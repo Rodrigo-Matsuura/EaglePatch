@@ -1,5 +1,6 @@
 #pragma once
 
+#include <windows.h>
 #include <new.h>
 #include <string.h>
 
@@ -56,14 +57,15 @@ public:
 	__asm { mov eax, uAddr	}	\
 	__asm { jmp eax			}
 
-int Unprotect_internal(void *address, size_t size);
-int Protect_internal(void *address, size_t);
+int Unprotect_internal(void *address, size_t size, DWORD* oldProtect);
+int Protect_internal(void *address, size_t size, DWORD oldProtect);
 
 template<typename T> __forceinline void Patch(uintptr_t address, T value)
 {
-	Unprotect_internal((void *)address, sizeof(T));
+	DWORD oldProtect;
+	Unprotect_internal((void *)address, sizeof(T), &oldProtect);
 	*(T *)address = value;
-	Protect_internal((void *)address, sizeof(T));
+	Protect_internal((void *)address, sizeof(T), oldProtect);
 }
 
 __forceinline void PatchByte(uintptr_t address, unsigned char value)
@@ -73,9 +75,10 @@ __forceinline void PatchByte(uintptr_t address, unsigned char value)
 
 __forceinline void PatchBytes(uintptr_t address, unsigned char *value, size_t size)
 {
-	Unprotect_internal((void *)address, size);
+	DWORD oldProtect;
+	Unprotect_internal((void *)address, size, &oldProtect);
 	memcpy((void *)address, value, size);
-	Protect_internal((void *)address, size);
+	Protect_internal((void *)address, size, oldProtect);
 }
 
 template<size_t size> __forceinline void PatchBytes(uintptr_t address, unsigned char (&value)[size])
@@ -90,9 +93,10 @@ __forceinline void ReadBytes(uintptr_t address, void *out, size_t size)
 
 __forceinline void SetBytes(uintptr_t address, int value, size_t size)
 {
-	Unprotect_internal((void *)address, size);
+	DWORD oldProtect;
+	Unprotect_internal((void *)address, size, &oldProtect);
 	memset((void *)address, value, size);
-	Protect_internal((void *)address, size);
+	Protect_internal((void *)address, size, oldProtect);
 }
 
 __forceinline void Nop(uintptr_t address, size_t count = 1)
@@ -115,21 +119,22 @@ enum
 
 template<typename T> __forceinline void InjectHook(uintptr_t address, T hook, int type = PATCH_EXISTING)
 {
+	DWORD oldProtect;
 	switch (type)
 	{
 	case PATCH_EXISTING:
-		Unprotect_internal((void *)(address + 1), HOOK_SIZE - 1);
+		Unprotect_internal((void *)(address + 1), HOOK_SIZE - 1, &oldProtect);
 
 		break;
 
 	case PATCH_CALL:
-		Unprotect_internal((void *)address, HOOK_SIZE);
+		Unprotect_internal((void *)address, HOOK_SIZE, &oldProtect);
 		*(unsigned char *)address = 0xE8;
 
 		break;
 
 	case PATCH_JUMP:
-		Unprotect_internal((void *)address, HOOK_SIZE);
+		Unprotect_internal((void *)address, HOOK_SIZE, &oldProtect);
 		*(unsigned char *)address = 0xE9;
 
 		break;
@@ -140,13 +145,13 @@ template<typename T> __forceinline void InjectHook(uintptr_t address, T hook, in
 	switch (type)
 	{
 		case PATCH_EXISTING:
-			Protect_internal((void *)(address + 1), HOOK_SIZE - 1);
+			Protect_internal((void *)(address + 1), HOOK_SIZE - 1, oldProtect);
 
 			break;
 
 		case PATCH_CALL:
 		case PATCH_JUMP:
-			Protect_internal((void *)address, HOOK_SIZE);
+			Protect_internal((void *)address, HOOK_SIZE, oldProtect);
 
 			break;
 	}

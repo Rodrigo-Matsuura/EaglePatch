@@ -1,4 +1,4 @@
-#include <Windows.h>
+#include <windows.h>
 
 #include "patcher.h"
 
@@ -25,14 +25,13 @@ void StaticPatcher::Apply()
 
 volatile uintptr_t patcher_arg;
 
-static DWORD protect[2];
-
-int Unprotect_internal(void *address, size_t size)
+int Unprotect_internal(void *address, size_t size, DWORD* oldProtect)
 {
-	return VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, &protect[0]);
+	return VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, oldProtect);
 }
 
-int Protect_internal(void *address, size_t size)
+int Protect_internal(void *address, size_t size, DWORD oldProtect)
 {
-	return VirtualProtect(address, size, protect[0], &protect[1]);
+	DWORD dummy;
+	return VirtualProtect(address, size, oldProtect, &dummy);
 }

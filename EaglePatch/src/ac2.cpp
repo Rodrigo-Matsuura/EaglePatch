@@ -1,7 +1,7 @@
-#include <Windows.h>
+#include <windows.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <Xinput.h>
+#include <xinput.h>
 
 #include "patcher.h"
 
@@ -300,11 +300,13 @@ namespace scimitar
 			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
 				selectedPad = NEEDED_KEYBOARD_SET;
 
-			pads[NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[NEEDED_KEYBOARD_SET].pInputBindings);
-			pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
+			if (pads[NEEDED_KEYBOARD_SET].pad)
+				pads[NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[NEEDED_KEYBOARD_SET].pInputBindings);
+			if (pads[Joy1].pad)
+				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
 
 			// see if no button was pressed in current pad
-			if (pads[selectedPad].pad->IsEmpty())
+			if (pads[selectedPad].pad && pads[selectedPad].pad->IsEmpty())
 			{
 				uint32_t i = selectedPad == NEEDED_KEYBOARD_SET ? Joy1 : NEEDED_KEYBOARD_SET;
 				// if any button was pressed on the other pad then switch to it
@@ -312,19 +314,22 @@ namespace scimitar
 					selectedPad = i;
 			}
 
-			m_LastFrame = m_ThisFrame;
-			m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
-			LeftStick = pads[selectedPad].pad->LeftStick;
-			RightStick = pads[selectedPad].pad->RightStick;
-
-			if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
-				m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
-			else
+			if (pads[selectedPad].pad)
 			{
-				// This is what original code does with any pad
-				// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
-				for (uint32_t i = 0; i < NbButtons; i++)
-					m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
+				m_LastFrame = m_ThisFrame;
+				m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
+				LeftStick = pads[selectedPad].pad->LeftStick;
+				RightStick = pads[selectedPad].pad->RightStick;
+
+				if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
+					m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
+				else
+				{
+					// This is what original code does with any pad
+					// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
+					for (uint32_t i = 0; i < NbButtons; i++)
+						m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
+				}
 			}
 
 			UpdateTimeStamps();
@@ -351,7 +356,8 @@ ASM(HackPlayerOptionsSaveData)
 
 		add esi, 0x3D
 
-		call scimitar::ClassSerializer::EndClass
+		mov ecx, esi
+		call sAddresses::ClassSerializer_EndClass
 
 		retn
 	}
@@ -374,8 +380,8 @@ ASM(_addXenonJoy_Patch)
 		mov eax, [eax+4]
 		mov pPad, eax
 		call AddXenonPad
+		jmp sAddresses::_addXenonJoy_JumpOut
 	}
-	VARJMP(sAddresses::_addXenonJoy_JumpOut)
 }
 
 ASM(_AddHWGraphicObjectInstances_forceLod0)
@@ -474,9 +480,9 @@ void patch()
 		PatchByte(sAddresses::_skipIntroVideos, 0xEB);
 }
 
-void InitAddresses(eExeVersion exeVersion)
+void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 {
-	init_private_profile();
+	init_private_profile(hModule);
 #ifdef INCLUDE_CONSOLE
 	if (get_private_profile_bool("AllocConsole", FALSE)) init_console();
 #endif
@@ -557,9 +563,9 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		if (MEMCMP32(0x00414A54 + 1, 0x01CA6FC8))
-			InitAddresses(DIGITAL_UPLAY);
+			InitAddresses(DIGITAL_UPLAY, hinstDLL);
 		else if (MEMCMP32(0x004149F4 + 1, 0x01CA4FA0))
-			InitAddresses(RETAIL_1_01);
+			InitAddresses(RETAIL_1_01, hinstDLL);
 	}
 
 	return TRUE;

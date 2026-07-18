@@ -1,0 +1,39 @@
+CompileFlags:
+  Add:
+    - -target
+    - i686-pc-windows-msvc
+    - -m32
+    - -I/home/matsu/EaglePatch/patcher
+    - -isystem/usr/include/wine/msvcrt
+    - -isystem/usr/include/wine/windows
+    - -isystem/usr/include/wine/windows/ddk
+    - -DNOMINMAX
+    - -DWIN32_LEAN_AND_MEAN
+    - -D_CRT_SECURE_NO_WARNINGS
+    - -D_CRT_NONSTDC_NO_DEPRECATE
+    - -D_USE_32BIT_TIME_T
+    - -D_MBCS
+    - -fms-extensions
+    - -fms-compatibility
+    - -fmsc-version=1900
+
+---
+If:
+  PathMatch: .*(ac1\.cpp|EaglePatchAC1)
+CompileFlags:
+  Add:
+    - -DDLL_NAME="EaglePatchAC1"
+
+---
+If:
+  PathMatch: .*(ac2\.cpp|EaglePatchAC2)
+CompileFlags:
+  Add:
+    - -DDLL_NAME="EaglePatchAC2"
+
+---
+If:
+  PathMatch: .*(shared/.*|patcher/.*)
+CompileFlags:
+  Add:
+    - -DDLL_NAME="EaglePatch"

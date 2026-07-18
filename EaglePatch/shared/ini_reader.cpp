@@ -2,6 +2,12 @@
 #include <direct.h>
 #include <stdlib.h>
 
+#include <string.h>
+
+#ifndef DLL_NAME
+#define DLL_NAME "EaglePatch"
+#endif
+
 static char ini_path[MAX_PATH];
 
 UINT get_private_profile_int(LPCTSTR lpKeyName, INT nDefault)
@@ -11,7 +17,17 @@ UINT get_private_profile_int(LPCTSTR lpKeyName, INT nDefault)
 
 UINT get_private_profile_bool(LPCTSTR lpKeyName, INT nDefault)
 {
-	return get_private_profile_int(lpKeyName, nDefault);
+	char value[16];
+	get_private_profile_string(lpKeyName, nDefault ? "1" : "0", value, sizeof(value));
+	if (_stricmp(value, "true") == 0 || _stricmp(value, "yes") == 0 || _stricmp(value, "on") == 0 || strcmp(value, "1") == 0)
+	{
+		return TRUE;
+	}
+	if (_stricmp(value, "false") == 0 || _stricmp(value, "no") == 0 || _stricmp(value, "off") == 0 || strcmp(value, "0") == 0)
+	{
+		return FALSE;
+	}
+	return nDefault;
 }
 
 DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lpReturnedString, DWORD nSize)
@@ -28,8 +44,16 @@ FLOAT get_private_profile_float(LPCTSTR lpKeyName, LPCTSTR lpDefault)
 	return (FLOAT)atof(lpReturnedString);
 }
 
-void init_private_profile()
+void init_private_profile(HMODULE hModule)
 {
-	_getcwd(ini_path, sizeof(ini_path));
-	strncat_s(ini_path, "\\" DLL_NAME ".ini", sizeof(ini_path));
+	GetModuleFileName(hModule, ini_path, sizeof(ini_path));
+	char* p = strrchr(ini_path, '.');
+	if (p)
+	{
+		strcpy_s(p, sizeof(ini_path) - (p - ini_path), ".ini");
+	}
+	else
+	{
+		strncat_s(ini_path, sizeof(ini_path), ".ini", 4);
+	}
 }

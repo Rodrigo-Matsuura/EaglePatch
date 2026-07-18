@@ -1,7 +1,7 @@
-#include <Windows.h>
+#include <windows.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <Xinput.h>
+#include <xinput.h>
 #include <dxgi.h>
 
 #include "patcher.h"
@@ -240,11 +240,13 @@ namespace scimitar
 			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
 				selectedPad = NEEDED_KEYBOARD_SET;
 
-			pads[NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[NEEDED_KEYBOARD_SET].pInputBindings);
-			pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
+			if (pads[NEEDED_KEYBOARD_SET].pad)
+				pads[NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[NEEDED_KEYBOARD_SET].pInputBindings);
+			if (pads[Joy1].pad)
+				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
 
 			// see if no button was pressed in current pad
-			if (pads[selectedPad].pad->IsEmpty())
+			if (pads[selectedPad].pad && pads[selectedPad].pad->IsEmpty())
 			{
 				uint32_t i = selectedPad == NEEDED_KEYBOARD_SET ? Joy1 : NEEDED_KEYBOARD_SET;
 				// if any button was pressed on the other pad then switch to it
@@ -252,19 +254,22 @@ namespace scimitar
 					selectedPad = i;
 			}
 
-			m_LastFrame = m_ThisFrame;
-			m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
-			LeftStick = pads[selectedPad].pad->LeftStick;
-			RightStick = pads[selectedPad].pad->RightStick;
-
-			if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
-				m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
-			else
+			if (pads[selectedPad].pad)
 			{
-				// This is what original code does with any pad
-				// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
-				for (uint32_t i = 0; i < NbButtons; i++)
-					m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
+				m_LastFrame = m_ThisFrame;
+				m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
+				LeftStick = pads[selectedPad].pad->LeftStick;
+				RightStick = pads[selectedPad].pad->RightStick;
+
+				if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
+					m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
+				else
+				{
+					// This is what original code does with any pad
+					// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
+					for (uint32_t i = 0; i < NbButtons; i++)
+						m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
+				}
 			}
 
 			UpdateTimeStamps();
@@ -290,8 +295,8 @@ ASM(_addXenonJoy_Patch)
 		mov eax, [eax+4]
 		mov pPad, eax
 		call AddXenonPad
+		jmp sAddresses::_addXenonJoy_JumpOut
 	}
-	VARJMP(sAddresses::_addXenonJoy_JumpOut)
 }
 
 struct D3D10ResolutionContainer
@@ -357,8 +362,25 @@ void patch()
 
 	if (get_private_profile_bool("LimitCpuCores", FALSE))
 	{
-		// set process affinity to use first 4 cores
-		SetProcessAffinityMask(GetCurrentProcess(), 0xF);
+		DWORD_PTR processAffinityMask, systemAffinityMask;
+		if (GetProcessAffinityMask(GetCurrentProcess(), &processAffinityMask, &systemAffinityMask))
+		{
+			// Limit to the first 4 active cores available in the system affinity mask
+			DWORD_PTR newMask = 0;
+			int coresSelected = 0;
+			for (int i = 0; i < sizeof(DWORD_PTR) * 8 && coresSelected < 4; i++)
+			{
+				if (systemAffinityMask & ((DWORD_PTR)1 << i))
+				{
+					newMask |= ((DWORD_PTR)1 << i);
+					coresSelected++;
+				}
+			}
+			if (newMask != 0)
+			{
+				SetProcessAffinityMask(GetCurrentProcess(), newMask);
+			}
+		}
 	}
 
 	if (!get_private_profile_bool("DisableXInputPatch", FALSE))
@@ -388,12 +410,12 @@ void patch()
 		PatchByte(sAddresses::_skipIntroVideos, 0xEB);
 
 	if (get_private_profile_bool("DisableTelemetry", TRUE))
-		PatchByte(sAddresses::_disableTelemetry, 0);
+		PatchByte(sAddresses::_disableTelemetry, 1);
 }
 
-void InitAddresses(eExeVersion exeVersion)
+void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 {
-	init_private_profile();
+	init_private_profile(hModule);
 #ifdef INCLUDE_CONSOLE
 	if (get_private_profile_bool("AllocConsole", FALSE)) init_console();
 #endif
@@ -425,7 +447,7 @@ void InitAddresses(eExeVersion exeVersion)
 		sAddresses::_ps3_controls_analog[2] = 0x98D07B + 4;
 		sAddresses::_ps3_controls_analog[3] = 0x98D092 + 4;
 		sAddresses::_skipIntroVideos = 0x405495;
-		sAddresses::_disableTelemetry = 0x017382D8;
+		sAddresses::_disableTelemetry = 0x01A11974;
 		break;
 	case DIGITAL_DX10:
 		sAddresses::Pad_UpdateTimeStamps = 0x912620;
@@ -452,7 +474,7 @@ void InitAddresses(eExeVersion exeVersion)
 		sAddresses::_ps3_controls_analog[2] = 0x96D88B + 4;
 		sAddresses::_ps3_controls_analog[3] = 0x96D8A2 + 4;
 		sAddresses::_skipIntroVideos = 0x4054B5;
-		sAddresses::_disableTelemetry = 0x170D798;
+		sAddresses::_disableTelemetry = 0x0199E924;
 
 		if (get_private_profile_bool("D3D10_RemoveDuplicateResolutions", TRUE))
 		{
@@ -476,11 +498,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 	{
 		if (MEMCMP32(0x00401375 + 1, 0x42d6)) // dx9
 		{
-			InitAddresses(DIGITAL_DX9);
+			InitAddresses(DIGITAL_DX9, hinstDLL);
 		}
 		else if (MEMCMP32(0x004013DE + 1, 0x428d)) // dx10
 		{
-			InitAddresses(DIGITAL_DX10);
+			InitAddresses(DIGITAL_DX10, hinstDLL);
 		}
 	}
 
