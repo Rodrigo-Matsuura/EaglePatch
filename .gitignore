@@ -362,3 +362,4 @@ wc.sh
 *.lib
 *.exp
 .clangd
+dist/
