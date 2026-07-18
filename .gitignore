@@ -358,3 +358,7 @@ MigrationBackup/
 # Custom entries
 diff.sh
 wc.sh
+*.asi
+*.lib
+*.exp
+.clangd

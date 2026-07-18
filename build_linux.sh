@@ -37,4 +37,7 @@ clang -shared -O2 -target i686-pc-windows-msvc -fuse-ld=lld -nostdlib \
     /usr/lib/wine/i386-windows/libmsvcrt.a \
     /usr/lib/wine/i386-windows/libkernel32.a
 
+# Clean up temporary linker export files
+rm -f EaglePatchAC1.lib EaglePatchAC2.lib test.lib
+
 echo "Build successful! Created EaglePatchAC1.asi and EaglePatchAC2.asi."
