@@ -38,11 +38,6 @@ SHA-1: 601475FD5EFA02BBAE80D1C06DFA25A0A1E7FD2F
 
 This plugin is using a lightweight win32 patcher by withmorten: https://github.com/withmorten/patcher
 
-Contacts
-Discord server: https://discord.gg/WgAg9ymHbj
-Github: https://github.com/Sergeanur
-Youtube: https://www.youtube.com/Sergeanur
-Help Ukraine: https://bit.ly/3afhuGm
-Support author: https://bit.ly/3sX2oMk
-
---Serge, 2022-2025
+Project maintainer (Fork):
+Github: https://github.com/Rodrigo-Matsuura/
+Original author: Sergeanur (https://github.com/Sergeanur)
