@@ -245,12 +245,12 @@ namespace scimitar
 			if (pads[Joy1].pad)
 				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
 
-			// see if no button was pressed in current pad
-			if (pads[selectedPad].pad && pads[selectedPad].pad->IsEmpty())
+			// see if current pad is empty or disconnected
+			if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
 			{
 				uint32_t i = selectedPad == NEEDED_KEYBOARD_SET ? Joy1 : NEEDED_KEYBOARD_SET;
-				// if any button was pressed on the other pad then switch to it
-				if (pads[i].pad && !pads[i].pad->IsEmpty())
+				// if the other pad is connected and active, or if current pad is disconnected, switch
+				if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
 					selectedPad = i;
 			}
 

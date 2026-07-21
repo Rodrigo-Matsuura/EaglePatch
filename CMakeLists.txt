@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
-project(EaglePatch LANGUAGES CXX)
+project(EaglePatchPlus LANGUAGES CXX)
 
 # Enforce 32-bit x86 architecture on Windows MSVC, as these ASI plugins are built for 32-bit games.
-if(MSVC)
-  if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
-    message(FATAL_ERROR "EaglePatch must be compiled as a 32-bit (x86) target. Please configure CMake with -A Win32.")
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 4)
+  if(MSVC)
+    message(FATAL_ERROR "EaglePatch+ must be compiled as a 32-bit (x86) target. Please configure CMake with -A Win32.")
+  else()
+    message(FATAL_ERROR "EaglePatch+ must be compiled as a 32-bit (x86) target. Please configure your toolchain for 32-bit (e.g. gcc -m32).")
   endif()
 endif()
 
@@ -38,93 +40,96 @@ set(SHARED_INCLUDE_DIRS
 )
 
 # ------------------------------------------------------------------------------
-# Target: EaglePatchAC1
+# Target: EaglePatchPlusAC1
 # ------------------------------------------------------------------------------
-add_library(EaglePatchAC1 SHARED
+add_library(EaglePatchPlusAC1 SHARED
     ${SHARED_SOURCES}
     EaglePatch/src/ac1.cpp
 )
 
-target_include_directories(EaglePatchAC1 PRIVATE ${SHARED_INCLUDE_DIRS})
+target_include_directories(EaglePatchPlusAC1 PRIVATE ${SHARED_INCLUDE_DIRS})
 
-target_compile_definitions(EaglePatchAC1 PRIVATE
+target_compile_definitions(EaglePatchPlusAC1 PRIVATE
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
     _CRT_NONSTDC_NO_DEPRECATE
     _USE_32BIT_TIME_T
     NOMINMAX
     _MBCS
-    DLL_NAME="EaglePatchAC1"
+    DLL_NAME="EaglePatch+AC1"
 )
 
 # MSVC-specific link requirements and settings
-target_link_libraries(EaglePatchAC1 PRIVATE
+target_link_libraries(EaglePatchPlusAC1 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:legacy_stdio_definitions>
 )
 
-target_link_options(EaglePatchAC1 PRIVATE
+target_link_options(EaglePatchPlusAC1 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/SAFESEH:NO>
     $<$<CXX_COMPILER_ID:MSVC>:/IGNORE:4222>
 )
 
-target_compile_options(EaglePatchAC1 PRIVATE
+target_compile_options(EaglePatchPlusAC1 PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Od>
 )
 
 # Enable Link Time Optimization (LTCG) for Release, and change output suffix to .asi
-set_target_properties(EaglePatchAC1 PROPERTIES
+set_target_properties(EaglePatchPlusAC1 PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+    OUTPUT_NAME "EaglePatch+AC1"
     SUFFIX ".asi"
 )
 
-target_link_options(EaglePatchAC1 PRIVATE
+target_link_options(EaglePatchPlusAC1 PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/OPT:NOICF>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/INCREMENTAL:NO>
 )
 
 # ------------------------------------------------------------------------------
-# Target: EaglePatchAC2
+# Target: EaglePatchPlusAC2
 # ------------------------------------------------------------------------------
-add_library(EaglePatchAC2 SHARED
+add_library(EaglePatchPlusAC2 SHARED
     ${SHARED_SOURCES}
     EaglePatch/src/ac2.cpp
 )
 
-target_include_directories(EaglePatchAC2 PRIVATE ${SHARED_INCLUDE_DIRS})
+target_include_directories(EaglePatchPlusAC2 PRIVATE ${SHARED_INCLUDE_DIRS})
 
-target_compile_definitions(EaglePatchAC2 PRIVATE
+target_compile_definitions(EaglePatchPlusAC2 PRIVATE
     WIN32_LEAN_AND_MEAN
     _CRT_SECURE_NO_WARNINGS
     _CRT_NONSTDC_NO_DEPRECATE
     _USE_32BIT_TIME_T
     NOMINMAX
     _MBCS
-    DLL_NAME="EaglePatchAC2"
+    DLL_NAME="EaglePatch+AC2"
 )
 
 # MSVC-specific link requirements and settings
-target_link_libraries(EaglePatchAC2 PRIVATE
+target_link_libraries(EaglePatchPlusAC2 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:legacy_stdio_definitions>
 )
 
-target_link_options(EaglePatchAC2 PRIVATE
+target_link_options(EaglePatchPlusAC2 PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/SAFESEH:NO>
     $<$<CXX_COMPILER_ID:MSVC>:/IGNORE:4222>
 )
 
-target_compile_options(EaglePatchAC2 PRIVATE
+target_compile_options(EaglePatchPlusAC2 PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/O2>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/Od>
 )
 
 # Enable Link Time Optimization (LTCG) for Release, and change output suffix to .asi
-set_target_properties(EaglePatchAC2 PROPERTIES
+set_target_properties(EaglePatchPlusAC2 PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
+    OUTPUT_NAME "EaglePatch+AC2"
     SUFFIX ".asi"
 )
 
-target_link_options(EaglePatchAC2 PRIVATE
+target_link_options(EaglePatchPlusAC2 PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:/OPT:NOICF>
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/INCREMENTAL:NO>
 )
+

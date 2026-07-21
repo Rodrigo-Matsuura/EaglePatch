@@ -179,9 +179,6 @@ template<typename T> __forceinline void InterceptVmethod(void *dst, T func, uint
 	Patch(a, func);
 }
 
-extern volatile uintptr_t patcher_arg;
-
-#define HOOK_ARG(type) (type)patcher_arg
 
 #define HOOK_CALL PATCH_CALL
 #define HOOK_JUMP PATCH_JUMP

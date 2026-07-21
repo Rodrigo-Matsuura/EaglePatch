@@ -305,12 +305,12 @@ namespace scimitar
 			if (pads[Joy1].pad)
 				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
 
-			// see if no button was pressed in current pad
-			if (pads[selectedPad].pad && pads[selectedPad].pad->IsEmpty())
+			// see if current pad is empty or disconnected
+			if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
 			{
 				uint32_t i = selectedPad == NEEDED_KEYBOARD_SET ? Joy1 : NEEDED_KEYBOARD_SET;
-				// if any button was pressed on the other pad then switch to it
-				if (pads[i].pad && !pads[i].pad->IsEmpty())
+				// if the other pad is connected and active, or if current pad is disconnected, switch
+				if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
 					selectedPad = i;
 			}
 
@@ -423,6 +423,29 @@ _checkIsCharacter_out:
 
 void patch()
 {
+	if (get_private_profile_bool("LimitCpuCores", FALSE))
+	{
+		DWORD_PTR processAffinityMask, systemAffinityMask;
+		if (GetProcessAffinityMask(GetCurrentProcess(), &processAffinityMask, &systemAffinityMask))
+		{
+			// Limit to the first 4 active cores available in the system affinity mask
+			DWORD_PTR newMask = 0;
+			int coresSelected = 0;
+			for (int i = 0; i < sizeof(DWORD_PTR) * 8 && coresSelected < 4; i++)
+			{
+				if (systemAffinityMask & ((DWORD_PTR)1 << i))
+				{
+					newMask |= ((DWORD_PTR)1 << i);
+					coresSelected++;
+				}
+			}
+			if (newMask != 0)
+			{
+				SetProcessAffinityMask(GetCurrentProcess(), newMask);
+			}
+		}
+	}
+
 	if (get_private_profile_bool("ImproveShadowMapResolution", TRUE))
 	{
 		Patch<uint32_t>(sAddresses::_shadowMapSize, 4096);

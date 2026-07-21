@@ -23,8 +23,6 @@ void StaticPatcher::Apply()
 	ms_head = NULL;
 }
 
-volatile uintptr_t patcher_arg;
-
 int Unprotect_internal(void *address, size_t size, DWORD* oldProtect)
 {
 	return VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, oldProtect);

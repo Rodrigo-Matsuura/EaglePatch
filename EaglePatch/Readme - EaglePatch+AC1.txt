@@ -1,4 +1,4 @@
-EaglePatchAC1 is an ASI plugin that fixes a number of issues in Assassin's Creed: Director's Cut Edition
+EaglePatch+AC1 is an ASI plugin that fixes a number of issues in Assassin's Creed: Director's Cut Edition
 
 Plugin version: 1.2
 
@@ -16,14 +16,14 @@ Features:
 - Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
 - [DX10 only] Fixed doubling of resolution modes in settings
 
-Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC1.ini
+Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatch+AC1.ini
 
 Installation:
 1. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/download/v4.68/Ultimate-ASI-Loader.zip
 2. Put dinput8.dll from Ultimate ASI Loader into your Assassin's Creed: Director's Cut Edition directory
 3. In your Assassin's Creed: Director's Cut Edition directory create a folder named scripts
-4. Put EaglePatchAC1.asi and EaglePatchAC1.ini into a newly created scripts folder
-5. Done! You may want to check EaglePatchAC1.ini for any settings you want to enable or disable
+4. Put EaglePatch+AC1.asi and EaglePatch+AC1.ini into a newly created scripts folder
+5. Done! You may want to check EaglePatch+AC1.ini for any settings you want to enable or disable
 
 Confirmed supported exes:
 AssassinsCreed_Dx9.exe (GOG/Steam)
@@ -36,8 +36,4 @@ CRC32: 3AF8F9D0
 MD5: CA87753255E2D14B1F18BB737C643792
 SHA-1: 601475FD5EFA02BBAE80D1C06DFA25A0A1E7FD2F
 
-This plugin is using a lightweight win32 patcher by withmorten: https://github.com/withmorten/patcher
-
-Project maintainer (Fork):
-Github: https://github.com/Rodrigo-Matsuura/
-Original author: Sergeanur (https://github.com/Sergeanur)
+This plugin is using a lightweight win32 patcher by withmorten: https://github.com/withmorten/patcher
