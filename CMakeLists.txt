@@ -56,7 +56,7 @@ target_compile_definitions(EaglePatchPlusAC1 PRIVATE
     _USE_32BIT_TIME_T
     NOMINMAX
     _MBCS
-    DLL_NAME="EaglePatch+AC1"
+    DLL_NAME="EaglePatchAC1"
 )
 
 # MSVC-specific link requirements and settings
@@ -77,7 +77,7 @@ target_compile_options(EaglePatchPlusAC1 PRIVATE
 # Enable Link Time Optimization (LTCG) for Release, and change output suffix to .asi
 set_target_properties(EaglePatchPlusAC1 PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
-    OUTPUT_NAME "EaglePatch+AC1"
+    OUTPUT_NAME "EaglePatchAC1"
     SUFFIX ".asi"
 )
 
@@ -103,7 +103,7 @@ target_compile_definitions(EaglePatchPlusAC2 PRIVATE
     _USE_32BIT_TIME_T
     NOMINMAX
     _MBCS
-    DLL_NAME="EaglePatch+AC2"
+    DLL_NAME="EaglePatchAC2"
 )
 
 # MSVC-specific link requirements and settings
@@ -124,7 +124,7 @@ target_compile_options(EaglePatchPlusAC2 PRIVATE
 # Enable Link Time Optimization (LTCG) for Release, and change output suffix to .asi
 set_target_properties(EaglePatchPlusAC2 PROPERTIES
     INTERPROCEDURAL_OPTIMIZATION_RELEASE ON
-    OUTPUT_NAME "EaglePatch+AC2"
+    OUTPUT_NAME "EaglePatchAC2"
     SUFFIX ".asi"
 )
 

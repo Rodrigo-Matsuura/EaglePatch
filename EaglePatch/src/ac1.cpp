@@ -38,6 +38,7 @@ struct sAddresses
 	static uintptr_t _ps3_controls_analog[4];
 	static uintptr_t _skipIntroVideos;
 	static uintptr_t _disableTelemetry;
+	static uintptr_t _shadowMapSize;
 };
 
 uintptr_t sAddresses::Pad_UpdateTimeStamps = 0;
@@ -55,6 +56,7 @@ uintptr_t sAddresses::_ps3_controls[4];
 uintptr_t sAddresses::_ps3_controls_analog[4];
 uintptr_t sAddresses::_skipIntroVideos = 0;
 uintptr_t sAddresses::_disableTelemetry = 0;
+uintptr_t sAddresses::_shadowMapSize = 0;
 
 
 auto ac_getNewDescriptor = (void* (__cdecl*)(uint32_t, uint32_t, uint32_t))0;
@@ -62,6 +64,48 @@ auto ac_allocate = (void*(__cdecl*)(int, uint32_t, void*, const void*, const cha
 auto ac_delete = (void (__cdecl*)(void*, void*, const char*))0;
 
 static int NEEDED_KEYBOARD_SET = 0;
+static int g_FramerateLimit = 0;
+static bool g_FixAspectRatio = false;
+static float g_FOVMultiplier = 1.0f;
+
+static void LimitFramerate()
+{
+	if (g_FramerateLimit <= 0)
+		return;
+
+	static LARGE_INTEGER frequency = { 0 };
+	static LARGE_INTEGER lastTime = { 0 };
+
+	if (frequency.QuadPart == 0)
+	{
+		QueryPerformanceFrequency(&frequency);
+		QueryPerformanceCounter(&lastTime);
+		return;
+	}
+
+	double targetFrameTime = 1.0 / (double)g_FramerateLimit;
+	LARGE_INTEGER currentTime;
+	QueryPerformanceCounter(&currentTime);
+
+	double elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
+
+	while (elapsedTime < targetFrameTime)
+	{
+		double remaining = targetFrameTime - elapsedTime;
+		if (remaining > 0.002)
+		{
+			Sleep(1);
+		}
+		else
+		{
+			YieldProcessor();
+		}
+		QueryPerformanceCounter(&currentTime);
+		elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
+	}
+
+	lastTime = currentTime;
+}
 
 namespace scimitar
 {
@@ -237,6 +281,8 @@ namespace scimitar
 
 		void Update()
 		{
+			LimitFramerate();
+
 			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
 				selectedPad = NEEDED_KEYBOARD_SET;
 
@@ -340,10 +386,6 @@ struct D3D10ResolutionContainer
 			if (!IsDisplayModeAlreadyAdded(modes[i], newModes, newModesNum))
 			{
 				newModes[newModesNum++] = modes[i];
-//#ifdef INCLUDE_CONSOLE
-//				printf("Mode %i - Width %i Height %i RefreshRate %i %i Format %i ScanlineOrdering %i Scaling %i\n", i,
-//					modes[i].Width, modes[i].Height, modes[i].RefreshRate.Numerator, modes[i].RefreshRate.Denominator, modes[i].Format, modes[i].ScanlineOrdering, modes[i].Scaling);
-//#endif
 			}
 		}
 		memset(modes, 0, sizeof(DXGI_MODE_DESC) * modesNum); // just to have cleaner memory
@@ -359,6 +401,10 @@ void patch()
 	NEEDED_KEYBOARD_SET = get_private_profile_int("KeyboardLayout", scimitar::PadSets::Keyboard1);
 	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
 	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
+
+	g_FramerateLimit = get_private_profile_int("FramerateLimit", 0);
+	g_FixAspectRatio = get_private_profile_bool("FixAspectRatio", FALSE);
+	g_FOVMultiplier = get_private_profile_float("FOVMultiplier", "1.0");
 
 	if (get_private_profile_bool("LimitCpuCores", FALSE))
 	{
@@ -383,7 +429,7 @@ void patch()
 		}
 	}
 
-	if (!get_private_profile_bool("DisableXInputPatch", FALSE))
+	if (!get_private_profile_bool("DisableXInputPatch", FALSE) || g_FramerateLimit > 0)
 	{
 		InjectHook(sAddresses::_addXenonJoy_Patch, &_addXenonJoy_Patch, PATCH_JUMP);
 		InjectHook(sAddresses::_PadProxyPC_Patch, &scimitar::PadProxyPC::Update, PATCH_JUMP);
@@ -394,7 +440,15 @@ void patch()
 	PatchBytes(sAddresses::_multisampling2, (unsigned char*)"\xb9\x01\x00\x00\x00\x90", 6);
 	Nop(sAddresses::_multisampling3, 3);
 
-	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE))
+	if (get_private_profile_bool("ImproveShadowMapResolution", TRUE))
+	{
+		if (sAddresses::_shadowMapSize != 0)
+		{
+			Patch<uint32_t>(sAddresses::_shadowMapSize, 4096);
+		}
+	}
+
+	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE) || get_private_profile_bool("PS5Controls", FALSE))
 	{
 		PatchByte(sAddresses::_ps3_controls[0], 0x23);
 		PatchByte(sAddresses::_ps3_controls[1], 0x25);
@@ -434,6 +488,7 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 		sAddresses::_multisampling2 = 0xE9116D;
 		sAddresses::_multisampling3 = 0xE91178;
 		sAddresses::_descriptor_var = (uint32_t*)0x1A1E680;
+		sAddresses::_shadowMapSize = 0x959ED3 + 3;
 		ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x924070;
 		ac_allocate = (void* (__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x7A4510;
 		ac_delete = (void(__cdecl*)(void*, void*, const char*))0x916440;
@@ -461,6 +516,7 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 		sAddresses::_multisampling2 = 0x1063F9D;
 		sAddresses::_multisampling3 = 0x1063FA8;
 		sAddresses::_descriptor_var = (uint32_t*)0x29A3710;
+		sAddresses::_shadowMapSize = 0x93E3C3 + 3;
 		ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x903AB0;
 		ac_allocate = (void* (__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x415BD0;
 		ac_delete = (void(__cdecl*)(void*, void*, const char*))0x8F60D0;

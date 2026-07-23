@@ -1,10 +1,12 @@
 EaglePatch+AC2 is an ASI plugin that fixes a number of issues in Assassin's Creed II
 
-Plugin version: 1.2
+Plugin version: 1.3
 
 Features:
 - Improved shadow map size from 1024 to 4096 (only when shadow quality is maxed out in game's settings; can be disabled in ini)
 - Draw distance maxed out for buildings, peds and flags (can be disabled in ini)
+- Added high-precision framerate limiter (FramerateLimit) to prevent physics glitches on high refresh rate monitors (>60 FPS)
+- Added ultrawide aspect ratio fix (21:9, 32:9) and field of view (FOV) multiplier options in ini
 - Enables UPlay bonuses - Auditore Crypt, Altair robes, extra knifes, bonus dye (can be disabled in ini)
 - Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
 - Added detection of hotplugged controllers (can be disabled in ini)
@@ -12,25 +14,20 @@ Features:
 - Gamepad and kb/mouse controls work at the same time (read note below)
 - Added ini setting for enabling PS3/PS4/PS5-like controls (swapping bumpers and triggers)
 - Added ini setting to skip intro videos (without having to rename files)
+- Added ini setting to limit CPU cores the game can use (fixes game crashing at startup when using a CPU with a high core count)
 - Improved thread-safety in memory patching (prevents random startup crashes)
 - Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
 - Added robustness for gamepad hotplugging (prevents null dereferences on disconnect)
 
-Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatch+AC2.ini
+Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC2.ini
 
 Installation:
-1. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/download/v4.68/Ultimate-ASI-Loader.zip
-2. Put dinput8.dll from Ultimate ASI Loader into your Assassin's Creed II directory
-3. In your Assassin's Creed II directory create a folder named scripts
-4. Put EaglePatch+AC2.asi and EaglePatch+AC2.ini into a newly created scripts folder
-5. Done! You may want to check EaglePatch+AC2.ini for any settings you want to enable or disable
+1. Download latest release of EaglePatch+AC2.zip: https://github.com/Rodrigo-Matsuura/EaglePatch/releases
+2. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/ OBS: Download the Ultimate-ASI-Loader.zip
+3. Put dinput8.dll from Ultimate ASI Loader into your Assassin's Creed II directory
+4. Extract the contents of EaglePatch+AC2.zip directly into your Assassin's Creed II directory
+5. Done! You may want to check scripts/EaglePatchAC2.ini for any settings you want to enable or disable
 
 Supported game versions:
 - Digital UPlay
 - Retail Akella v1.01
-
-This plugin is using a lightweight win32 patcher by withmorten: https://github.com/withmorten/patcher
-
-Project maintainer (Fork):
-Github: https://github.com/Rodrigo-Matsuura/
-Original author: Sergeanur (https://github.com/Sergeanur)

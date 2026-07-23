@@ -67,6 +67,48 @@ uintptr_t sAddresses::HackPlayerOptionsSaveData = 0;
 uintptr_t sAddresses::ClassSerializer_EndClass = 0;
 
 int NEEDED_KEYBOARD_SET = 0;
+static int g_FramerateLimit = 0;
+static bool g_FixAspectRatio = false;
+static float g_FOVMultiplier = 1.0f;
+
+static void LimitFramerate()
+{
+	if (g_FramerateLimit <= 0)
+		return;
+
+	static LARGE_INTEGER frequency = { 0 };
+	static LARGE_INTEGER lastTime = { 0 };
+
+	if (frequency.QuadPart == 0)
+	{
+		QueryPerformanceFrequency(&frequency);
+		QueryPerformanceCounter(&lastTime);
+		return;
+	}
+
+	double targetFrameTime = 1.0 / (double)g_FramerateLimit;
+	LARGE_INTEGER currentTime;
+	QueryPerformanceCounter(&currentTime);
+
+	double elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
+
+	while (elapsedTime < targetFrameTime)
+	{
+		double remaining = targetFrameTime - elapsedTime;
+		if (remaining > 0.002)
+		{
+			Sleep(1);
+		}
+		else
+		{
+			YieldProcessor();
+		}
+		QueryPerformanceCounter(&currentTime);
+		elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
+	}
+
+	lastTime = currentTime;
+}
 
 auto ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0;
 auto ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0;
@@ -297,6 +339,8 @@ namespace scimitar
 
 		void Update()
 		{
+			LimitFramerate();
+
 			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
 				selectedPad = NEEDED_KEYBOARD_SET;
 
@@ -481,13 +525,17 @@ void patch()
 	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
 	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
 
-	if (!get_private_profile_bool("DisableXInputPatch", FALSE))
+	g_FramerateLimit = get_private_profile_int("FramerateLimit", 0);
+	g_FixAspectRatio = get_private_profile_bool("FixAspectRatio", FALSE);
+	g_FOVMultiplier = get_private_profile_float("FOVMultiplier", "1.0");
+
+	if (!get_private_profile_bool("DisableXInputPatch", FALSE) || g_FramerateLimit > 0)
 	{
 		InjectHook(sAddresses::_addXenonJoy_Patch, &_addXenonJoy_Patch, PATCH_JUMP);
 		InjectHook(sAddresses::_PadProxyPC_Patch, &scimitar::PadProxyPC::Update, PATCH_JUMP);
 	}
 
-	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE))
+	if (get_private_profile_bool("PS3Controls", FALSE) || get_private_profile_bool("PS4Controls", FALSE) || get_private_profile_bool("PS5Controls", FALSE))
 	{
 		PatchByte(sAddresses::_ps3_controls[0], 0x23);
 		PatchByte(sAddresses::_ps3_controls[1], 0x25);
@@ -572,7 +620,7 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 		sAddresses::ClassSerializer_EndClass = 0x14BEB50;
 
 		ac_getNewDescriptor = (void* (__cdecl*)(uint32_t, uint32_t, uint32_t))0x149CAD0;
-		ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x1466AE0;
+		ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x4236A0;
 		Gear::MemHook::pRef = (Gear::MemHook***)0x223A3A4;
 		break;
 	default:

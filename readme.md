@@ -2,11 +2,15 @@
 
 EaglePatch+AC1 is an ASI plugin that fixes a number of issues in Assassin's Creed: Director's Cut Edition
 
-**Plugin version:** 1.2
+**Plugin version:** 1.3
 
 <img src="/assets/EaglePatch+AC1.png" alt="EaglePatch+AC1">
 
 ## Features
+- Improved shadow map size from 1024 to 4096 (only when shadow quality is maxed out in game's settings; can be disabled in ini)
+- Improved draw distance for buildings, peds and flags (can be disabled in ini)
+- Added high-precision framerate limiter (`FramerateLimit`) to prevent physics glitches on high refresh rate monitors (>60 FPS)
+- Added ultrawide aspect ratio fix (`FixAspectRatio`) and field of view multiplier (`FOVMultiplier`) options in ini
 - Unlocked multisampling on high resolutions
 - Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
 - Added detection of hotplugged controllers (can be disabled in ini)
@@ -20,15 +24,14 @@ EaglePatch+AC1 is an ASI plugin that fixes a number of issues in Assassin's Cree
 - Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
 - [DX10 only] Fixed doubling of resolution modes in settings
 
-Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatch+AC1.ini
+Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC1.ini
 
 ## Installation
 1. Download latest release of EaglePatch+AC1.zip: https://github.com/Rodrigo-Matsuura/EaglePatch/releases
-2. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/download/v4.68/Ultimate-ASI-Loader.zip
+2. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/ OBS: Download the Ultimate-ASI-Loader.zip
 3. Put dinput8.dll from Ultimate ASI Loader into your Assassin's Creed: Director's Cut Edition directory
-4. In your Assassin's Creed: Director's Cut Edition directory create a folder named scripts
-5. Put EaglePatch+AC1.asi and EaglePatch+AC1.ini into a newly created scripts folder
-6. Done! You may want to check EaglePatch+AC1.ini for any settings you want to enable or disable
+4. Extract the contents of EaglePatch+AC1.zip directly into your Assassin's Creed: Director's Cut Edition directory
+5. Done! You may want to check scripts/EaglePatchAC1.ini for any settings you want to enable or disable
 
 ## Confirmed supported exes
 #### AssassinsCreed_Dx9.exe (GOG/Steam)
@@ -45,13 +48,15 @@ SHA-1: 601475FD5EFA02BBAE80D1C06DFA25A0A1E7FD2F
 
 EaglePatch+AC2 is an ASI plugin that fixes a number of issues in Assassin's Creed II
 
-**Plugin version:** 1.2
+**Plugin version:** 1.3
 
 <img src="/assets/EaglePatch+AC2.png" alt="EaglePatch+AC2">
 
 ## Features
 - Improved shadow map size from 1024 to 4096 (only when shadow quality is maxed out in game's settings; can be disabled in ini)
 - Draw distance maxed out for buildings, peds and flags (can be disabled in ini)
+- Added high-precision framerate limiter (`FramerateLimit`) to prevent physics glitches on high refresh rate monitors (>60 FPS)
+- Added ultrawide aspect ratio fix (`FixAspectRatio`) and field of view multiplier (`FOVMultiplier`) options in ini
 - Enables UPlay bonuses - Auditore Crypt, Altair robes, extra knifes, bonus dye (can be disabled in ini)
 - Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
 - Added detection of hotplugged controllers (can be disabled in ini)
@@ -64,15 +69,14 @@ EaglePatch+AC2 is an ASI plugin that fixes a number of issues in Assassin's Cree
 - Full compatibility and cross-compilation support on Linux / Wine / Steam Deck (Proton)
 - Added robustness for gamepad hotplugging (prevents null dereferences on disconnect)
 
-Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatch+AC2.ini
+Note: switching controls layout in game settings has no effect anymore, if you didn't use KeyboardMouse2 layout for keyboard, you need to change KeyboardLayout setting in EaglePatchAC2.ini
 
 ## Installation
 1. Download latest release of EaglePatch+AC2.zip: https://github.com/Rodrigo-Matsuura/EaglePatch/releases
-2. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/download/v4.68/Ultimate-ASI-Loader.zip
+2. Download Ultimate ASI Loader: https://github.com/ThirteenAG/Ultimate-ASI-Loader/releases/ OBS: Download the Ultimate-ASI-Loader.zip
 3. Put dinput8.dll from Ultimate ASI Loader into your Assassin's Creed II directory
-4. In your Assassin's Creed II directory create a folder named scripts
-5. Put EaglePatch+AC2.asi and EaglePatch+AC2.ini into a newly created scripts folder
-6. Done! You may want to check EaglePatch+AC2.ini for any settings you want to enable or disable
+4. Extract the contents of EaglePatch+AC2.zip directly into your Assassin's Creed II directory
+5. Done! You may want to check scripts/EaglePatchAC2.ini for any settings you want to enable or disable
 
 ## Supported game versions
 - Digital UPlay
