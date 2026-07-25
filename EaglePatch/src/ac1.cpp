@@ -68,10 +68,31 @@ static int g_FramerateLimit = 0;
 static bool g_FixAspectRatio = false;
 static float g_FOVMultiplier = 1.0f;
 
+static void InitPrecisionTimer()
+{
+	static bool initialized = false;
+	if (!initialized)
+	{
+		initialized = true;
+		HMODULE hWinmm = LoadLibraryA("winmm.dll");
+		if (hWinmm)
+		{
+			typedef UINT(WINAPI* pfnTimeBeginPeriod)(UINT uPeriod);
+			auto pTimeBeginPeriod = (pfnTimeBeginPeriod)GetProcAddress(hWinmm, "timeBeginPeriod");
+			if (pTimeBeginPeriod)
+			{
+				pTimeBeginPeriod(1);
+			}
+		}
+	}
+}
+
 static void LimitFramerate()
 {
 	if (g_FramerateLimit <= 0)
 		return;
+
+	InitPrecisionTimer();
 
 	static LARGE_INTEGER frequency = { 0 };
 	static LARGE_INTEGER lastTime = { 0 };
@@ -92,7 +113,7 @@ static void LimitFramerate()
 	while (elapsedTime < targetFrameTime)
 	{
 		double remaining = targetFrameTime - elapsedTime;
-		if (remaining > 0.002)
+		if (remaining > 0.003)
 		{
 			Sleep(1);
 		}
@@ -267,6 +288,48 @@ namespace scimitar
 		NbPadSets,
 	};
 
+	struct PadProxyPC;
+	struct PadXenon;
+	static PadProxyPC* pPad = nullptr;
+	static PadXenon* padXenon = nullptr;
+
+	static void CheckXInputReconnect(PadXenon* pad)
+	{
+		if (!pad || pad->m_PadState.Connected)
+			return;
+
+		static DWORD lastCheckTime = 0;
+		DWORD now = GetTickCount();
+		if (now - lastCheckTime >= 500)
+		{
+			lastCheckTime = now;
+			typedef DWORD(WINAPI* pfnXInputGetState)(DWORD dwUserIndex, XINPUT_STATE* pState);
+			static pfnXInputGetState pGetState = nullptr;
+			static bool attempted = false;
+			if (!attempted)
+			{
+				attempted = true;
+				HMODULE hXInput = LoadLibraryA("xinput1_3.dll");
+				if (!hXInput) hXInput = LoadLibraryA("xinput1_4.dll");
+				if (!hXInput) hXInput = LoadLibraryA("xinput9_1_0.dll");
+				if (hXInput)
+				{
+					pGetState = (pfnXInputGetState)GetProcAddress(hXInput, "XInputGetState");
+				}
+			}
+
+			if (pGetState)
+			{
+				XINPUT_STATE state;
+				if (pGetState(pad->m_PadIndex, &state) == ERROR_SUCCESS)
+				{
+					pad->m_PadState.Connected = true;
+					pad->m_PadState.Inserted = true;
+					pad->m_PadState.Removed = false;
+				}
+			}
+		}
+	}
 	struct PadProxyPC : Pad
 	{
 		int field_590;
@@ -282,6 +345,8 @@ namespace scimitar
 		void Update()
 		{
 			LimitFramerate();
+
+			CheckXInputReconnect(padXenon);
 
 			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
 				selectedPad = NEEDED_KEYBOARD_SET;
@@ -324,14 +389,11 @@ namespace scimitar
 	static_assert(sizeof(PadProxyPC) == 0x15D0, "PadProxyPC");
 }
 
-static scimitar::PadProxyPC* pPad = nullptr;
-static scimitar::PadXenon* padXenon = nullptr;
-
 void __cdecl AddXenonPad()
 {
-	padXenon = new scimitar::PadXenon(0);
-	if (!pPad->AddPad(padXenon, scimitar::Pad::PadType::XenonPad, L"XInput Controller 1", 5, 5))
-		ac_delete(padXenon, nullptr, nullptr);
+	scimitar::padXenon = new scimitar::PadXenon(0);
+	if (!scimitar::pPad->AddPad(scimitar::padXenon, scimitar::Pad::PadType::XenonPad, L"XInput Controller 1", 5, 5))
+		ac_delete(scimitar::padXenon, nullptr, nullptr);
 }
 
 ASM(_addXenonJoy_Patch)
@@ -339,7 +401,7 @@ ASM(_addXenonJoy_Patch)
 	__asm
 	{
 		mov eax, [eax+4]
-		mov pPad, eax
+		mov scimitar::pPad, eax
 		call AddXenonPad
 		jmp sAddresses::_addXenonJoy_JumpOut
 	}
@@ -440,7 +502,7 @@ void patch()
 	PatchBytes(sAddresses::_multisampling2, (unsigned char*)"\xb9\x01\x00\x00\x00\x90", 6);
 	Nop(sAddresses::_multisampling3, 3);
 
-	if (get_private_profile_bool("ImproveShadowMapResolution", TRUE))
+	if (get_private_profile_bool("ImproveShadowMapResolution", FALSE))
 	{
 		if (sAddresses::_shadowMapSize != 0)
 		{
