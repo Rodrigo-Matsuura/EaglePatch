@@ -49,6 +49,8 @@ UINT get_private_profile_bool(LPCTSTR lpKeyName, INT nDefault)
 
 DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lpReturnedString, DWORD nSize)
 {
+	if (!lpReturnedString || nSize == 0) return 0;
+
 	wchar_t wKeyName[128];
 	wchar_t wSection[128];
 	wchar_t wDefault[128];
@@ -57,15 +59,21 @@ DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lp
 	const wchar_t* pwSection = AnsiToWideHelper(DLL_NAME, wSection, 128);
 	const wchar_t* pwDefault = AnsiToWideHelper(lpDefault, wDefault, 128);
 
-	wchar_t* wReturnedString = (wchar_t*)malloc(nSize * sizeof(wchar_t));
-	if (!wReturnedString) return 0;
+	wchar_t wStackBuffer[512];
+	wchar_t* wReturnedString = wStackBuffer;
+	if (nSize > 512)
+	{
+		wReturnedString = (wchar_t*)malloc(nSize * sizeof(wchar_t));
+		if (!wReturnedString) return 0;
+	}
 
 	DWORD result = GetPrivateProfileStringW(pwSection, pwKeyName, pwDefault, wReturnedString, nSize, ini_path);
-	if (lpReturnedString && nSize > 0)
+	WideToAnsi(wReturnedString, lpReturnedString, nSize);
+
+	if (wReturnedString != wStackBuffer)
 	{
-		WideToAnsi(wReturnedString, lpReturnedString, nSize);
+		free(wReturnedString);
 	}
-	free(wReturnedString);
 	return result;
 }
 

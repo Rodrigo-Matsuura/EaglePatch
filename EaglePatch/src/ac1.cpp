@@ -7,6 +7,7 @@
 #include "patcher.h"
 
 #include "../shared/ini_reader.h"
+#include "../shared/utils.h"
 
 //#define INCLUDE_CONSOLE // add ability to allocate console window
 
@@ -67,66 +68,6 @@ static int NEEDED_KEYBOARD_SET = 0;
 static int g_FramerateLimit = 0;
 static bool g_FixAspectRatio = false;
 static float g_FOVMultiplier = 1.0f;
-
-static void InitPrecisionTimer()
-{
-	static bool initialized = false;
-	if (!initialized)
-	{
-		initialized = true;
-		HMODULE hWinmm = LoadLibraryA("winmm.dll");
-		if (hWinmm)
-		{
-			typedef UINT(WINAPI* pfnTimeBeginPeriod)(UINT uPeriod);
-			auto pTimeBeginPeriod = (pfnTimeBeginPeriod)GetProcAddress(hWinmm, "timeBeginPeriod");
-			if (pTimeBeginPeriod)
-			{
-				pTimeBeginPeriod(1);
-			}
-		}
-	}
-}
-
-static void LimitFramerate()
-{
-	if (g_FramerateLimit <= 0)
-		return;
-
-	InitPrecisionTimer();
-
-	static LARGE_INTEGER frequency = { 0 };
-	static LARGE_INTEGER lastTime = { 0 };
-
-	if (frequency.QuadPart == 0)
-	{
-		QueryPerformanceFrequency(&frequency);
-		QueryPerformanceCounter(&lastTime);
-		return;
-	}
-
-	double targetFrameTime = 1.0 / (double)g_FramerateLimit;
-	LARGE_INTEGER currentTime;
-	QueryPerformanceCounter(&currentTime);
-
-	double elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
-
-	while (elapsedTime < targetFrameTime)
-	{
-		double remaining = targetFrameTime - elapsedTime;
-		if (remaining > 0.003)
-		{
-			Sleep(1);
-		}
-		else
-		{
-			YieldProcessor();
-		}
-		QueryPerformanceCounter(&currentTime);
-		elapsedTime = (double)(currentTime.QuadPart - lastTime.QuadPart) / (double)frequency.QuadPart;
-	}
-
-	lastTime = currentTime;
-}
 
 namespace scimitar
 {
@@ -261,6 +202,7 @@ namespace scimitar
 		}
 		void* operator new(size_t size)
 		{
+			(void)size;
 			return ac_allocate(2, sizeof(PadXenon), ac_getNewDescriptor(sizeof(PadXenon), 16, *sAddresses::_descriptor_var), nullptr, nullptr, nullptr, 0, nullptr);
 		}
 	};
@@ -293,43 +235,6 @@ namespace scimitar
 	static PadProxyPC* pPad = nullptr;
 	static PadXenon* padXenon = nullptr;
 
-	static void CheckXInputReconnect(PadXenon* pad)
-	{
-		if (!pad || pad->m_PadState.Connected)
-			return;
-
-		static DWORD lastCheckTime = 0;
-		DWORD now = GetTickCount();
-		if (now - lastCheckTime >= 500)
-		{
-			lastCheckTime = now;
-			typedef DWORD(WINAPI* pfnXInputGetState)(DWORD dwUserIndex, XINPUT_STATE* pState);
-			static pfnXInputGetState pGetState = nullptr;
-			static bool attempted = false;
-			if (!attempted)
-			{
-				attempted = true;
-				HMODULE hXInput = LoadLibraryA("xinput1_3.dll");
-				if (!hXInput) hXInput = LoadLibraryA("xinput1_4.dll");
-				if (!hXInput) hXInput = LoadLibraryA("xinput9_1_0.dll");
-				if (hXInput)
-				{
-					pGetState = (pfnXInputGetState)GetProcAddress(hXInput, "XInputGetState");
-				}
-			}
-
-			if (pGetState)
-			{
-				XINPUT_STATE state;
-				if (pGetState(pad->m_PadIndex, &state) == ERROR_SUCCESS)
-				{
-					pad->m_PadState.Connected = true;
-					pad->m_PadState.Inserted = true;
-					pad->m_PadState.Removed = false;
-				}
-			}
-		}
-	}
 	struct PadProxyPC : Pad
 	{
 		int field_590;
@@ -344,22 +249,22 @@ namespace scimitar
 
 		void Update()
 		{
-			LimitFramerate();
+			LimitFramerate(g_FramerateLimit);
 
 			CheckXInputReconnect(padXenon);
 
-			if (selectedPad != NEEDED_KEYBOARD_SET && selectedPad != Joy1)
-				selectedPad = NEEDED_KEYBOARD_SET;
+			if (selectedPad != (uint32_t)NEEDED_KEYBOARD_SET && selectedPad != Joy1)
+				selectedPad = (uint32_t)NEEDED_KEYBOARD_SET;
 
-			if (pads[NEEDED_KEYBOARD_SET].pad)
-				pads[NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[NEEDED_KEYBOARD_SET].pInputBindings);
+			if (pads[(size_t)NEEDED_KEYBOARD_SET].pad)
+				pads[(size_t)NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[(size_t)NEEDED_KEYBOARD_SET].pInputBindings);
 			if (pads[Joy1].pad)
 				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
 
 			// see if current pad is empty or disconnected
 			if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
 			{
-				uint32_t i = selectedPad == NEEDED_KEYBOARD_SET ? Joy1 : NEEDED_KEYBOARD_SET;
+				uint32_t i = selectedPad == (uint32_t)NEEDED_KEYBOARD_SET ? Joy1 : (uint32_t)NEEDED_KEYBOARD_SET;
 				// if the other pad is connected and active, or if current pad is disconnected, switch
 				if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
 					selectedPad = i;
@@ -470,25 +375,7 @@ void patch()
 
 	if (get_private_profile_bool("LimitCpuCores", FALSE))
 	{
-		DWORD_PTR processAffinityMask, systemAffinityMask;
-		if (GetProcessAffinityMask(GetCurrentProcess(), &processAffinityMask, &systemAffinityMask))
-		{
-			// Limit to the first 4 active cores available in the system affinity mask
-			DWORD_PTR newMask = 0;
-			int coresSelected = 0;
-			for (int i = 0; i < sizeof(DWORD_PTR) * 8 && coresSelected < 4; i++)
-			{
-				if (systemAffinityMask & ((DWORD_PTR)1 << i))
-				{
-					newMask |= ((DWORD_PTR)1 << i);
-					coresSelected++;
-				}
-			}
-			if (newMask != 0)
-			{
-				SetProcessAffinityMask(GetCurrentProcess(), newMask);
-			}
-		}
+		ApplyCpuCoreLimit();
 	}
 
 	if (!get_private_profile_bool("DisableXInputPatch", FALSE) || g_FramerateLimit > 0)
@@ -612,6 +499,7 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)
 {
+	(void)lpReserved;
 	if (fdwReason == DLL_PROCESS_ATTACH)
 	{
 		if (MEMCMP32(0x00401375 + 1, 0x42d6)) // dx9

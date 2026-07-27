@@ -33,9 +33,11 @@ void operator delete[](void* ptr) noexcept {
 }
 
 void operator delete(void* ptr, size_t size) noexcept {
+    (void)size;
     free(ptr);
 }
 
 void operator delete[](void* ptr, size_t size) noexcept {
+    (void)size;
     free(ptr);
 }

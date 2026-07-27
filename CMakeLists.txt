@@ -30,8 +30,10 @@ set(SHARED_SOURCES
     patcher/patcher.h
     EaglePatch/shared/console.h
     EaglePatch/shared/ini_reader.h
+    EaglePatch/shared/utils.h
     EaglePatch/shared/console.cpp
     EaglePatch/shared/ini_reader.cpp
+    EaglePatch/shared/utils.cpp
 )
 
 # Common include directories

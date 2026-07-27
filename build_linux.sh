@@ -22,6 +22,7 @@ clang -shared -O2 -target i686-pc-windows-msvc -fuse-ld=lld -nostdlib \
     patcher/patcher.cpp \
     EaglePatch/shared/console.cpp \
     EaglePatch/shared/ini_reader.cpp \
+    EaglePatch/shared/utils.cpp \
     EaglePatch/src/ac1.cpp \
     /usr/lib/wine/i386-windows/libwinecrt0.a \
     /usr/lib/wine/i386-windows/libmsvcrt.a \
@@ -44,6 +45,7 @@ clang -shared -O2 -target i686-pc-windows-msvc -fuse-ld=lld -nostdlib \
     patcher/patcher.cpp \
     EaglePatch/shared/console.cpp \
     EaglePatch/shared/ini_reader.cpp \
+    EaglePatch/shared/utils.cpp \
     EaglePatch/src/ac2.cpp \
     /usr/lib/wine/i386-windows/libwinecrt0.a \
     /usr/lib/wine/i386-windows/libmsvcrt.a \

@@ -1,0 +1,78 @@
+name: Build EaglePatch+
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build-linux-clang:
+    name: Build (Linux Clang Cross-Compile)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install -y clang lld wine-development libwine-dev:i386 || sudo apt-get install -y clang lld wine libwine-dev:i386 || true
+
+      - name: Grant execute permissions to build script
+        run: chmod +x build_linux.sh
+
+      - name: Run Linux Build
+        run: ./build_linux.sh
+
+      - name: Upload AC1 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EaglePatch-AC1-Linux
+          path: dist/EaglePatch+AC1.zip
+
+      - name: Upload AC2 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EaglePatch-AC2-Linux
+          path: dist/EaglePatch+AC2.zip
+
+  build-windows-msvc:
+    name: Build (Windows MSVC)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure CMake (Win32)
+        run: cmake -B build -A Win32 -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build with CMake
+        run: cmake --build build --config Release
+
+      - name: Package Windows Release Archives
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC1/scripts
+          New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC2/scripts
+          Copy-Item EaglePatch/bin/EaglePatchAC1.asi dist/EaglePatch+AC1/scripts/
+          Copy-Item EaglePatch/EaglePatchAC1.ini dist/EaglePatch+AC1/scripts/
+          Copy-Item "EaglePatch/Readme - EaglePatch+AC1.txt" dist/EaglePatch+AC1/
+          Copy-Item EaglePatch/bin/EaglePatchAC2.asi dist/EaglePatch+AC2/scripts/
+          Copy-Item EaglePatch/EaglePatchAC2.ini dist/EaglePatch+AC2/scripts/
+          Copy-Item "EaglePatch/Readme - EaglePatch+AC2.txt" dist/EaglePatch+AC2/
+          Compress-Archive -Path dist/EaglePatch+AC1/* -DestinationPath dist/EaglePatch+AC1-Win32.zip
+          Compress-Archive -Path dist/EaglePatch+AC2/* -DestinationPath dist/EaglePatch+AC2-Win32.zip
+        shell: pwsh
+
+      - name: Upload AC1 Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EaglePatch-AC1-Windows
+          path: dist/EaglePatch+AC1-Win32.zip
+
+      - name: Upload AC2 Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: EaglePatch-AC2-Windows
+          path: dist/EaglePatch+AC2-Win32.zip
