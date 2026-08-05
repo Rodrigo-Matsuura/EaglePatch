@@ -55,7 +55,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC1/scripts
           New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC2/scripts
           $ac1 = Get-Item -Path "EaglePatch/bin/EaglePatchAC1.asi", "EaglePatch/bin/Release/EaglePatchAC1.asi", "build/Release/EaglePatchAC1.asi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $ac1) { $ac1 = Get-ChildItem -Path . -Recurse -Filter "EaglePatchAC1.asi" | Select-Object -First 1 }
           $ac2 = Get-Item -Path "EaglePatch/bin/EaglePatchAC2.asi", "EaglePatch/bin/Release/EaglePatchAC2.asi", "build/Release/EaglePatchAC2.asi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $ac2) { $ac2 = Get-ChildItem -Path . -Recurse -Filter "EaglePatchAC2.asi" | Select-Object -First 1 }
           Copy-Item $ac1.FullName dist/EaglePatch+AC1/scripts/EaglePatchAC1.asi
           Copy-Item EaglePatch/EaglePatchAC1.ini dist/EaglePatch+AC1/scripts/
           Copy-Item "EaglePatch/Readme - EaglePatch+AC1.txt" dist/EaglePatch+AC1/

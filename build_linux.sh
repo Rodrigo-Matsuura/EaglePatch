@@ -10,8 +10,8 @@ mkdir -p "dist/EaglePatch+AC1/scripts"
 mkdir -p "dist/EaglePatch+AC2/scripts"
 
 echo "Building EaglePatchAC1.asi..."
-clang++ -shared -O2 -target i686-w64-windows-gnu -fuse-ld=lld \
-    -fms-extensions -fms-compatibility -fmsc-version=1900 -fasm-blocks \
+clang++ -shared -O2 --target=i686-w64-mingw32 -fuse-ld=lld \
+    -fms-extensions -fasm-blocks \
     -Ipatcher \
     -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE -D_USE_32BIT_TIME_T -DNOMINMAX -D_MBCS \
     -DDLL_NAME=\"EaglePatchAC1\" \
@@ -28,8 +28,8 @@ cp "EaglePatch/EaglePatchAC1.ini" "dist/EaglePatch+AC1/scripts/"
 cp "EaglePatch/Readme - EaglePatch+AC1.txt" "dist/EaglePatch+AC1/"
 
 echo "Building EaglePatchAC2.asi..."
-clang++ -shared -O2 -target i686-w64-windows-gnu -fuse-ld=lld \
-    -fms-extensions -fms-compatibility -fmsc-version=1900 -fasm-blocks \
+clang++ -shared -O2 --target=i686-w64-mingw32 -fuse-ld=lld \
+    -fms-extensions -fasm-blocks \
     -Ipatcher \
     -DWIN32_LEAN_AND_MEAN -D_CRT_SECURE_NO_WARNINGS -D_CRT_NONSTDC_NO_DEPRECATE -D_USE_32BIT_TIME_T -DNOMINMAX -D_MBCS \
     -DDLL_NAME=\"EaglePatchAC2\" \
