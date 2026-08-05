@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y clang lld wine-development libwine-dev:i386 || sudo apt-get install -y clang lld wine libwine-dev:i386 || true
+          sudo apt-get install -y --no-install-recommends libwine-dev:i386 clang lld
 
       - name: Grant execute permissions to build script
         run: chmod +x build_linux.sh
@@ -55,10 +55,12 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC1/scripts
           New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC2/scripts
-          Copy-Item EaglePatch/bin/EaglePatchAC1.asi dist/EaglePatch+AC1/scripts/
+          $ac1 = Get-Item -Path "EaglePatch/bin/EaglePatchAC1.asi", "EaglePatch/bin/Release/EaglePatchAC1.asi", "build/Release/EaglePatchAC1.asi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $ac2 = Get-Item -Path "EaglePatch/bin/EaglePatchAC2.asi", "EaglePatch/bin/Release/EaglePatchAC2.asi", "build/Release/EaglePatchAC2.asi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          Copy-Item $ac1.FullName dist/EaglePatch+AC1/scripts/EaglePatchAC1.asi
           Copy-Item EaglePatch/EaglePatchAC1.ini dist/EaglePatch+AC1/scripts/
           Copy-Item "EaglePatch/Readme - EaglePatch+AC1.txt" dist/EaglePatch+AC1/
-          Copy-Item EaglePatch/bin/EaglePatchAC2.asi dist/EaglePatch+AC2/scripts/
+          Copy-Item $ac2.FullName dist/EaglePatch+AC2/scripts/EaglePatchAC2.asi
           Copy-Item EaglePatch/EaglePatchAC2.ini dist/EaglePatch+AC2/scripts/
           Copy-Item "EaglePatch/Readme - EaglePatch+AC2.txt" dist/EaglePatch+AC2/
           Compress-Archive -Path dist/EaglePatch+AC1/* -DestinationPath dist/EaglePatch+AC1-Win32.zip
