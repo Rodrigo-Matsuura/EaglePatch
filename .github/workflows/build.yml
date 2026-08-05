@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends wine-development libwine-dev:i386 clang lld || sudo apt-get install -y --no-install-recommends wine libwine-dev:i386 clang lld || true
+          sudo apt-get install -y --no-install-recommends libwine-dev:i386 clang lld
 
       - name: Grant execute permissions to build script
         run: chmod +x build_linux.sh

@@ -9,28 +9,24 @@ echo "Creating release directory structure..."
 mkdir -p "dist/EaglePatch+AC1/scripts"
 mkdir -p "dist/EaglePatch+AC2/scripts"
 
-# Locate Wine include and library directories
+# Locate Wine include and library directories using find for multiarch compatibility
+LIBWINECRT0_FILE=$(find /usr/lib /usr/lib32 /usr/lib64 -name "libwinecrt0.a" 2>/dev/null | head -n 1)
+WINE_LIB_DIR=""
+if [ -n "$LIBWINECRT0_FILE" ]; then
+    WINE_LIB_DIR=$(dirname "$LIBWINECRT0_FILE")
+fi
+
+MSVCRT_DIR=$(find /usr/include -type d -name "msvcrt" 2>/dev/null | grep wine | head -n 1)
 WINE_INC_MSVCRT=""
 WINE_INC_WIN=""
-for dir in /usr/include/wine /usr/include/wine-development; do
-    if [ -d "$dir/msvcrt" ]; then
-        WINE_INC_MSVCRT="$dir/msvcrt"
-        WINE_INC_WIN="$dir/windows"
-        break
-    fi
-done
-
-WINE_LIB_DIR=""
-for dir in /usr/lib/wine/i386-windows /usr/lib/wine-development/i386-windows /usr/lib/i386-linux-gnu/wine /usr/lib/wine; do
-    if [ -f "$dir/libwinecrt0.a" ]; then
-        WINE_LIB_DIR="$dir"
-        break
-    fi
-done
+if [ -n "$MSVCRT_DIR" ]; then
+    WINE_INC_MSVCRT="$MSVCRT_DIR"
+    WINE_INC_WIN="$(dirname "$MSVCRT_DIR")/windows"
+fi
 
 if [ -z "$WINE_LIB_DIR" ] || [ -z "$WINE_INC_MSVCRT" ]; then
     echo "Error: Wine 32-bit development libraries (libwinecrt0.a) or headers not found."
-    echo "Please ensure wine-development or libwine-dev:i386 is installed."
+    echo "Please ensure libwine-dev:i386 or wine-development is installed."
     exit 1
 fi
 
