@@ -143,3 +143,19 @@ target_link_options(EaglePatchPlusAC2 PRIVATE
     $<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Debug>>:/INCREMENTAL:NO>
 )
 
+# ------------------------------------------------------------------------------
+# Target: Unit Tests
+# ------------------------------------------------------------------------------
+option(BUILD_TESTING "Build unit tests" ON)
+if(BUILD_TESTING)
+    enable_testing()
+    add_executable(EaglePatchTests
+        tests/test_ini_reader.cpp
+        EaglePatch/shared/ini_reader.cpp
+        EaglePatch/shared/utils.cpp
+    )
+    target_include_directories(EaglePatchTests PRIVATE EaglePatch/shared patcher)
+    target_compile_definitions(EaglePatchTests PRIVATE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS NOMINMAX)
+    add_test(NAME EaglePatchTests COMMAND EaglePatchTests)
+endif()
+

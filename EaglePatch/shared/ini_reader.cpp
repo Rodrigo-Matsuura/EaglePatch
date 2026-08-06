@@ -12,15 +12,23 @@ static wchar_t ini_path[MAX_PATH];
 
 static const wchar_t* AnsiToWideHelper(const char* ansi, wchar_t* wideBuffer, size_t wideSize)
 {
-	if (!ansi) return nullptr;
-	MultiByteToWideChar(CP_ACP, 0, ansi, -1, wideBuffer, wideSize);
+	if (!ansi || !wideBuffer || wideSize == 0)
+		return nullptr;
+	if (MultiByteToWideChar(CP_ACP, 0, ansi, -1, wideBuffer, (int)wideSize) == 0)
+	{
+		wideBuffer[wideSize - 1] = L'\0';
+	}
 	return wideBuffer;
 }
 
 static void WideToAnsi(const wchar_t* wide, char* ansi, size_t ansiSize)
 {
-	if (!wide || !ansi || ansiSize == 0) return;
-	WideCharToMultiByte(CP_ACP, 0, wide, -1, ansi, ansiSize, NULL, NULL);
+	if (!wide || !ansi || ansiSize == 0)
+		return;
+	if (WideCharToMultiByte(CP_ACP, 0, wide, -1, ansi, (int)ansiSize, NULL, NULL) == 0)
+	{
+		ansi[ansiSize - 1] = '\0';
+	}
 }
 
 UINT get_private_profile_int(LPCTSTR lpKeyName, INT nDefault)
@@ -49,7 +57,8 @@ UINT get_private_profile_bool(LPCTSTR lpKeyName, INT nDefault)
 
 DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lpReturnedString, DWORD nSize)
 {
-	if (!lpReturnedString || nSize == 0) return 0;
+	if (!lpReturnedString || nSize == 0)
+		return 0;
 
 	wchar_t wKeyName[128];
 	wchar_t wSection[128];
@@ -64,7 +73,8 @@ DWORD get_private_profile_string(LPCTSTR lpKeyName, LPCTSTR lpDefault, LPTSTR lp
 	if (nSize > 512)
 	{
 		wReturnedString = (wchar_t*)malloc(nSize * sizeof(wchar_t));
-		if (!wReturnedString) return 0;
+		if (!wReturnedString)
+			return 0;
 	}
 
 	DWORD result = GetPrivateProfileStringW(pwSection, pwKeyName, pwDefault, wReturnedString, nSize, ini_path);

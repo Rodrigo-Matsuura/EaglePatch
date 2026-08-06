@@ -60,9 +60,9 @@ uintptr_t sAddresses::_disableTelemetry = 0;
 uintptr_t sAddresses::_shadowMapSize = 0;
 
 
-auto ac_getNewDescriptor = (void* (__cdecl*)(uint32_t, uint32_t, uint32_t))0;
+auto ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0;
 auto ac_allocate = (void*(__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0;
-auto ac_delete = (void (__cdecl*)(void*, void*, const char*))0;
+auto ac_delete = (void(__cdecl*)(void*, void*, const char*))0;
 
 static int NEEDED_KEYBOARD_SET = 0;
 static int g_FramerateLimit = 0;
@@ -71,228 +71,211 @@ static float g_FOVMultiplier = 1.0f;
 
 namespace scimitar
 {
-	struct Object
+struct Object
+{
+	void** vtable;
+};
+
+struct ManagedObject : Object
+{
+	int m_Flags;
+};
+
+class InputBindings;
+
+struct Pad : ManagedObject
+{
+	enum PadType
 	{
-		void** vtable;
+		MouseKeyboardPad = 0,
+		PCPad,
+		XenonPad,
+		PS2Pad,
 	};
 
-	struct ManagedObject : Object
+	enum PadButton
 	{
-		int m_Flags;
+		Button1,
+		Button2,
+		Button3,
+		Button4,
+		PadDown,
+		PadLeft,
+		PadUp,
+		PadRight,
+		Select,
+		Start,
+		ShoulderLeft1,
+		ShoulderLeft2,
+		ShoulderRight1,
+		ShoulderRight2,
+		StickLeft,
+		StickRight,
+		NbButtons,
+		Button_Invalid = -1,
 	};
 
-	class InputBindings;
-
-	struct Pad : ManagedObject
+	struct ButtonStates
 	{
-		enum PadType
-		{
-			MouseKeyboardPad = 0,
-			PCPad,
-			XenonPad,
-			PS2Pad,
-		};
-
-		enum PadButton
-		{
-			Button1,
-			Button2,
-			Button3,
-			Button4,
-			PadDown,
-			PadLeft,
-			PadUp,
-			PadRight,
-			Select,
-			Start,
-			ShoulderLeft1,
-			ShoulderLeft2,
-			ShoulderRight1,
-			ShoulderRight2,
-			StickLeft,
-			StickRight,
-			NbButtons,
-			Button_Invalid = -1,
-		};
-
-		struct ButtonStates
-		{
-			bool state[NbButtons];
-
-			bool IsEmpty() const
-			{
-				for (int i = 0; i < NbButtons; i++)
-					if (state[i])
-						return false;
-				return true;
-			}
-		};
-
-		struct AnalogButtonStates
-		{
-			float state[NbButtons];
-		};
-
-		struct __declspec(align(16)) StickState
-		{
-			float x, y;
-
-			bool IsEmpty() const
-			{
-				//return fabsf(x) < 0.1f && fabsf(y) < 0.1f;
-				return x == 0.0f && y == 0.0f;
-			}
-		};
-
-		ButtonStates m_LastFrame;
-		ButtonStates m_ThisFrame;
-		uint64_t m_LastFrameTimeStamp;
-		uint64_t m_ThisFrameTimeStamp;
-		uint64_t m_ButtonPressTimeStamp[NbButtons];
-		AnalogButtonStates m_ButtonValues;
-		StickState LeftStick;
-		StickState RightStick;
-		int field_1B0[17];
-		float* vibrationData;
-		char field_1F8[0x390];
-
-		void UpdatePad(InputBindings*a)
-		{
-			((void(__thiscall*)(Pad*, InputBindings*))vtable[10])(this, a);
-		}
-
-		void UpdateTimeStamps()
-		{
-			((void(__thiscall*)(Pad*))sAddresses::Pad_UpdateTimeStamps)(this);
-		}
-
-		void ScaleStickValues()
-		{
-			((void(__thiscall*)(Pad*))sAddresses::Pad_ScaleStickValues)(this);
-		}
+		bool state[NbButtons];
 
 		bool IsEmpty() const
 		{
-			return m_ThisFrame.IsEmpty() && LeftStick.IsEmpty() && RightStick.IsEmpty();
-		}
-	};
-	static_assert(sizeof(Pad) == 0x500, "Pad");
-
-	struct PadXenon : Pad
-	{
-		struct PadState
-		{
-			XINPUT_CAPABILITIES Caps;
-			bool Connected;
-			bool Inserted;
-			bool Removed;
-		};
-
-		uint32_t m_PadIndex;
-		PadState m_PadState;
-
-		PadXenon* _ctor(uint32_t padId)
-		{
-			return ((PadXenon *(__thiscall*)(PadXenon*, uint32_t))sAddresses::PadXenon_ctor)(this, padId);
-		}
-
-		PadXenon(uint32_t padId)
-		{
-			_ctor(padId);
-		}
-		void* operator new(size_t size)
-		{
-			(void)size;
-			return ac_allocate(2, sizeof(PadXenon), ac_getNewDescriptor(sizeof(PadXenon), 16, *sAddresses::_descriptor_var), nullptr, nullptr, nullptr, 0, nullptr);
+			for (int i = 0; i < NbButtons; i++)
+				if (state[i])
+					return false;
+			return true;
 		}
 	};
 
-	static_assert(sizeof(PadXenon) == 0x520, "PadXenon");
-
-	struct PadData
+	struct AnalogButtonStates
 	{
-		scimitar::Pad* pad;
-		char field_4[528];
-		InputBindings* pInputBindings;
-	};
-	static_assert(sizeof(PadData) == 536, "PadData");
-
-	enum PadSets
-	{
-		Keyboard1 = 0,
-		Keyboard2,
-		Keyboard3,
-		Keyboard4,
-		Joy1,
-		Joy2,
-		Joy3,
-		Joy4,
-		NbPadSets,
+		float state[NbButtons];
 	};
 
-	struct PadProxyPC;
-	struct PadXenon;
-	static PadProxyPC* pPad = nullptr;
-	static PadXenon* padXenon = nullptr;
-
-	struct PadProxyPC : Pad
+	struct __declspec(align(16)) StickState
 	{
-		int field_590;
-		uint32_t selectedPad;
-		int field_598;
-		scimitar::PadData pads[NbPadSets];
+		float x, y;
 
-		bool AddPad(scimitar::Pad* a, PadType b, const wchar_t* c, uint16_t d, uint16_t e)
+		bool IsEmpty() const
 		{
-			return ((bool(__thiscall*)(PadProxyPC*, scimitar::Pad*, PadType, const wchar_t*, uint16_t, uint16_t))sAddresses::PadProxyPC_AddPad)(this,a,b,c,d,e);
+			//return fabsf(x) < 0.1f && fabsf(y) < 0.1f;
+			return x == 0.0f && y == 0.0f;
+		}
+	};
+
+	ButtonStates m_LastFrame;
+	ButtonStates m_ThisFrame;
+	uint64_t m_LastFrameTimeStamp;
+	uint64_t m_ThisFrameTimeStamp;
+	uint64_t m_ButtonPressTimeStamp[NbButtons];
+	AnalogButtonStates m_ButtonValues;
+	StickState LeftStick;
+	StickState RightStick;
+	int field_1B0[17];
+	float* vibrationData;
+	char field_1F8[0x390];
+
+	void UpdatePad(InputBindings* a) { ((void(__thiscall*)(Pad*, InputBindings*))vtable[10])(this, a); }
+
+	void UpdateTimeStamps() { ((void(__thiscall*)(Pad*))sAddresses::Pad_UpdateTimeStamps)(this); }
+
+	void ScaleStickValues() { ((void(__thiscall*)(Pad*))sAddresses::Pad_ScaleStickValues)(this); }
+
+	bool IsEmpty() const { return m_ThisFrame.IsEmpty() && LeftStick.IsEmpty() && RightStick.IsEmpty(); }
+};
+static_assert(sizeof(Pad) == 0x500, "Pad");
+
+struct PadXenon : Pad
+{
+	struct PadState
+	{
+		XINPUT_CAPABILITIES Caps;
+		bool Connected;
+		bool Inserted;
+		bool Removed;
+	};
+
+	uint32_t m_PadIndex;
+	PadState m_PadState;
+
+	PadXenon* _ctor(uint32_t padId) { return ((PadXenon * (__thiscall*)(PadXenon*, uint32_t)) sAddresses::PadXenon_ctor)(this, padId); }
+
+	PadXenon(uint32_t padId) { _ctor(padId); }
+	void* operator new(size_t size)
+	{
+		(void)size;
+		return ac_allocate(2, sizeof(PadXenon), ac_getNewDescriptor(sizeof(PadXenon), 16, *sAddresses::_descriptor_var), nullptr, nullptr, nullptr, 0, nullptr);
+	}
+};
+
+static_assert(sizeof(PadXenon) == 0x520, "PadXenon");
+
+struct PadData
+{
+	scimitar::Pad* pad;
+	char field_4[528];
+	InputBindings* pInputBindings;
+};
+static_assert(sizeof(PadData) == 536, "PadData");
+
+enum PadSets
+{
+	Keyboard1 = 0,
+	Keyboard2,
+	Keyboard3,
+	Keyboard4,
+	Joy1,
+	Joy2,
+	Joy3,
+	Joy4,
+	NbPadSets,
+};
+
+struct PadProxyPC;
+struct PadXenon;
+static PadProxyPC* pPad = nullptr;
+static PadXenon* padXenon = nullptr;
+
+struct PadProxyPC : Pad
+{
+	int field_590;
+	uint32_t selectedPad;
+	int field_598;
+	scimitar::PadData pads[NbPadSets];
+
+	bool AddPad(scimitar::Pad* a, PadType b, const wchar_t* c, uint16_t d, uint16_t e)
+	{
+		return ((bool(__thiscall*)(PadProxyPC*, scimitar::Pad*, PadType, const wchar_t*, uint16_t, uint16_t))sAddresses::PadProxyPC_AddPad)(this, a, b, c, d,
+																																			e);
+	}
+
+	void Update()
+	{
+		LimitFramerate(g_FramerateLimit);
+
+		CheckXInputReconnect(padXenon);
+
+		if (selectedPad != (uint32_t)NEEDED_KEYBOARD_SET && selectedPad != Joy1)
+			selectedPad = (uint32_t)NEEDED_KEYBOARD_SET;
+
+		if (pads[(size_t)NEEDED_KEYBOARD_SET].pad)
+			pads[(size_t)NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[(size_t)NEEDED_KEYBOARD_SET].pInputBindings);
+		if (pads[Joy1].pad)
+			pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
+
+		// see if current pad is empty or disconnected
+		if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
+		{
+			uint32_t i = selectedPad == (uint32_t)NEEDED_KEYBOARD_SET ? Joy1 : (uint32_t)NEEDED_KEYBOARD_SET;
+			// if the other pad is connected and active, or if current pad is disconnected, switch
+			if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
+				selectedPad = i;
 		}
 
-		void Update()
+		if (pads[selectedPad].pad)
 		{
-			LimitFramerate(g_FramerateLimit);
+			m_LastFrame = m_ThisFrame;
+			m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
+			LeftStick = pads[selectedPad].pad->LeftStick;
+			RightStick = pads[selectedPad].pad->RightStick;
 
-			CheckXInputReconnect(padXenon);
-
-			if (selectedPad != (uint32_t)NEEDED_KEYBOARD_SET && selectedPad != Joy1)
-				selectedPad = (uint32_t)NEEDED_KEYBOARD_SET;
-
-			if (pads[(size_t)NEEDED_KEYBOARD_SET].pad)
-				pads[(size_t)NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[(size_t)NEEDED_KEYBOARD_SET].pInputBindings);
-			if (pads[Joy1].pad)
-				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
-
-			// see if current pad is empty or disconnected
-			if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
+			if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
+				m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
+			else
 			{
-				uint32_t i = selectedPad == (uint32_t)NEEDED_KEYBOARD_SET ? Joy1 : (uint32_t)NEEDED_KEYBOARD_SET;
-				// if the other pad is connected and active, or if current pad is disconnected, switch
-				if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
-					selectedPad = i;
+				// This is what original code does with any pad
+				// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
+				for (uint32_t i = 0; i < NbButtons; i++)
+					m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
 			}
-
-			if (pads[selectedPad].pad)
-			{
-				m_LastFrame = m_ThisFrame;
-				m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
-				LeftStick = pads[selectedPad].pad->LeftStick;
-				RightStick = pads[selectedPad].pad->RightStick;
-
-				if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
-					m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
-				else
-				{
-					// This is what original code does with any pad
-					// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
-					for (uint32_t i = 0; i < NbButtons; i++)
-						m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
-				}
-			}
-
-			UpdateTimeStamps();
 		}
-	};
-	static_assert(sizeof(PadProxyPC) == 0x15D0, "PadProxyPC");
-}
+
+		UpdateTimeStamps();
+	}
+};
+static_assert(sizeof(PadProxyPC) == 0x15D0, "PadProxyPC");
+} // namespace scimitar
 
 void __cdecl AddXenonPad()
 {
@@ -321,10 +304,7 @@ struct D3D10ResolutionContainer
 	uint32_t _8;
 	// there's probably more fields in here but we don't need them
 
-	void GetDisplayModes(IDXGIOutput* a1)
-	{
-		((void(__thiscall*)(D3D10ResolutionContainer*, IDXGIOutput*))0x7BAD20)(this, a1);
-	}
+	void GetDisplayModes(IDXGIOutput* a1) { ((void(__thiscall*)(D3D10ResolutionContainer*, IDXGIOutput*))0x7BAD20)(this, a1); }
 
 	void FindCurrentResolutionMode(uint32_t width, uint32_t height, uint32_t refreshRate)
 	{
@@ -335,9 +315,9 @@ struct D3D10ResolutionContainer
 	{
 		for (uint32_t j = newModesNum; j > 0; j--)
 		{
-			if (newModes[j - 1].Width == mode.Width && newModes[j - 1].Height == mode.Height
-				&& newModes[j - 1].RefreshRate.Numerator == mode.RefreshRate.Numerator
-				&& newModes[j - 1].Format == mode.Format && newModes[j - 1].ScanlineOrdering == mode.ScanlineOrdering)
+			if (newModes[j - 1].Width == mode.Width && newModes[j - 1].Height == mode.Height &&
+				newModes[j - 1].RefreshRate.Numerator == mode.RefreshRate.Numerator && newModes[j - 1].Format == mode.Format &&
+				newModes[j - 1].ScanlineOrdering == mode.ScanlineOrdering)
 				return true;
 		}
 		return false;
@@ -358,7 +338,7 @@ struct D3D10ResolutionContainer
 		memset(modes, 0, sizeof(DXGI_MODE_DESC) * modesNum); // just to have cleaner memory
 		memcpy(modes, newModes, sizeof(DXGI_MODE_DESC) * newModesNum);
 		modesNum = newModesNum;
-		delete[]newModes;
+		delete[] newModes;
 		FindCurrentResolutionMode(m_width, m_height, m_refreshRate);
 	}
 };
@@ -366,8 +346,10 @@ struct D3D10ResolutionContainer
 void patch()
 {
 	NEEDED_KEYBOARD_SET = get_private_profile_int("KeyboardLayout", scimitar::PadSets::Keyboard1);
-	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
-	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
+	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1)
+		NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
+	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4)
+		NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
 
 	g_FramerateLimit = get_private_profile_int("FramerateLimit", 0);
 	g_FixAspectRatio = get_private_profile_bool("FixAspectRatio", FALSE);
@@ -420,81 +402,81 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 {
 	init_private_profile(hModule);
 #ifdef INCLUDE_CONSOLE
-	if (get_private_profile_bool("AllocConsole", FALSE)) init_console();
+	if (get_private_profile_bool("AllocConsole", FALSE))
+		init_console();
 #endif
 
 	switch (exeVersion)
 	{
-	case DIGITAL_DX9:
-		sAddresses::Pad_UpdateTimeStamps = 0x93F990;
-		sAddresses::Pad_ScaleStickValues = 0x93FC80;
-		sAddresses::PadXenon_ctor = 0x9161A0;
-		sAddresses::PadProxyPC_AddPad = 0x90B2F0;
-		sAddresses::_addXenonJoy_Patch = 0x916979;
-		sAddresses::_addXenonJoy_JumpOut = 0x916990;
-		sAddresses::_PadProxyPC_Patch = 0x909C90;
-		sAddresses::_multisampling1 = 0xE91422;
-		sAddresses::_multisampling2 = 0xE9116D;
-		sAddresses::_multisampling3 = 0xE91178;
-		sAddresses::_descriptor_var = (uint32_t*)0x1A1E680;
-		sAddresses::_shadowMapSize = 0x959ED3 + 3;
-		ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x924070;
-		ac_allocate = (void* (__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x7A4510;
-		ac_delete = (void(__cdecl*)(void*, void*, const char*))0x916440;
+		case DIGITAL_DX9:
+			sAddresses::Pad_UpdateTimeStamps = 0x93F990;
+			sAddresses::Pad_ScaleStickValues = 0x93FC80;
+			sAddresses::PadXenon_ctor = 0x9161A0;
+			sAddresses::PadProxyPC_AddPad = 0x90B2F0;
+			sAddresses::_addXenonJoy_Patch = 0x916979;
+			sAddresses::_addXenonJoy_JumpOut = 0x916990;
+			sAddresses::_PadProxyPC_Patch = 0x909C90;
+			sAddresses::_multisampling1 = 0xE91422;
+			sAddresses::_multisampling2 = 0xE9116D;
+			sAddresses::_multisampling3 = 0xE91178;
+			sAddresses::_descriptor_var = (uint32_t*)0x1A1E680;
+			sAddresses::_shadowMapSize = 0x959ED3 + 3;
+			ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x924070;
+			ac_allocate = (void*(__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x7A4510;
+			ac_delete = (void(__cdecl*)(void*, void*, const char*))0x916440;
 
-		sAddresses::_ps3_controls[0] = 0x98CF98 + 2;
-		sAddresses::_ps3_controls[1] = 0x98CFB5 + 2;
-		sAddresses::_ps3_controls[2] = 0x98D061 + 2;
-		sAddresses::_ps3_controls[3] = 0x98D064 + 2;
-		sAddresses::_ps3_controls_analog[0] = 0x98D02E + 4;
-		sAddresses::_ps3_controls_analog[1] = 0x98D056 + 4;
-		sAddresses::_ps3_controls_analog[2] = 0x98D07B + 4;
-		sAddresses::_ps3_controls_analog[3] = 0x98D092 + 4;
-		sAddresses::_skipIntroVideos = 0x405495;
-		sAddresses::_disableTelemetry = 0x01A11974;
-		break;
-	case DIGITAL_DX10:
-		sAddresses::Pad_UpdateTimeStamps = 0x912620;
-		sAddresses::Pad_ScaleStickValues = 0x912910;
-		sAddresses::PadXenon_ctor = 0x8F5E30;
-		sAddresses::PadProxyPC_AddPad = 0x8EB7F0;
-		sAddresses::_addXenonJoy_Patch = 0x8F6609;
-		sAddresses::_addXenonJoy_JumpOut = 0x8F6620;
-		sAddresses::_PadProxyPC_Patch = 0x8EA190;
-		sAddresses::_multisampling1 = 0x1064252;
-		sAddresses::_multisampling2 = 0x1063F9D;
-		sAddresses::_multisampling3 = 0x1063FA8;
-		sAddresses::_descriptor_var = (uint32_t*)0x29A3710;
-		sAddresses::_shadowMapSize = 0x93E3C3 + 3;
-		ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x903AB0;
-		ac_allocate = (void* (__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x415BD0;
-		ac_delete = (void(__cdecl*)(void*, void*, const char*))0x8F60D0;
+			sAddresses::_ps3_controls[0] = 0x98CF98 + 2;
+			sAddresses::_ps3_controls[1] = 0x98CFB5 + 2;
+			sAddresses::_ps3_controls[2] = 0x98D061 + 2;
+			sAddresses::_ps3_controls[3] = 0x98D064 + 2;
+			sAddresses::_ps3_controls_analog[0] = 0x98D02E + 4;
+			sAddresses::_ps3_controls_analog[1] = 0x98D056 + 4;
+			sAddresses::_ps3_controls_analog[2] = 0x98D07B + 4;
+			sAddresses::_ps3_controls_analog[3] = 0x98D092 + 4;
+			sAddresses::_skipIntroVideos = 0x405495;
+			sAddresses::_disableTelemetry = 0x01A11974;
+			break;
+		case DIGITAL_DX10:
+			sAddresses::Pad_UpdateTimeStamps = 0x912620;
+			sAddresses::Pad_ScaleStickValues = 0x912910;
+			sAddresses::PadXenon_ctor = 0x8F5E30;
+			sAddresses::PadProxyPC_AddPad = 0x8EB7F0;
+			sAddresses::_addXenonJoy_Patch = 0x8F6609;
+			sAddresses::_addXenonJoy_JumpOut = 0x8F6620;
+			sAddresses::_PadProxyPC_Patch = 0x8EA190;
+			sAddresses::_multisampling1 = 0x1064252;
+			sAddresses::_multisampling2 = 0x1063F9D;
+			sAddresses::_multisampling3 = 0x1063FA8;
+			sAddresses::_descriptor_var = (uint32_t*)0x29A3710;
+			sAddresses::_shadowMapSize = 0x93E3C3 + 3;
+			ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x903AB0;
+			ac_allocate = (void*(__cdecl*)(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*))0x415BD0;
+			ac_delete = (void(__cdecl*)(void*, void*, const char*))0x8F60D0;
 
-		sAddresses::_ps3_controls[0] = 0x96D7A8 + 2;
-		sAddresses::_ps3_controls[1] = 0x96D7C5 + 2;
-		sAddresses::_ps3_controls[2] = 0x96D871 + 2;
-		sAddresses::_ps3_controls[3] = 0x96D874 + 2;
-		sAddresses::_ps3_controls_analog[0] = 0x96D83E + 4;
-		sAddresses::_ps3_controls_analog[1] = 0x96D866 + 4;
-		sAddresses::_ps3_controls_analog[2] = 0x96D88B + 4;
-		sAddresses::_ps3_controls_analog[3] = 0x96D8A2 + 4;
-		sAddresses::_skipIntroVideos = 0x4054B5;
-		sAddresses::_disableTelemetry = 0x0199E924;
+			sAddresses::_ps3_controls[0] = 0x96D7A8 + 2;
+			sAddresses::_ps3_controls[1] = 0x96D7C5 + 2;
+			sAddresses::_ps3_controls[2] = 0x96D871 + 2;
+			sAddresses::_ps3_controls[3] = 0x96D874 + 2;
+			sAddresses::_ps3_controls_analog[0] = 0x96D83E + 4;
+			sAddresses::_ps3_controls_analog[1] = 0x96D866 + 4;
+			sAddresses::_ps3_controls_analog[2] = 0x96D88B + 4;
+			sAddresses::_ps3_controls_analog[3] = 0x96D8A2 + 4;
+			sAddresses::_skipIntroVideos = 0x4054B5;
+			sAddresses::_disableTelemetry = 0x0199E924;
 
-		if (get_private_profile_bool("D3D10_RemoveDuplicateResolutions", TRUE))
-		{
-			// remove interlaced resolutions
-			PatchByte(0x7BAD2E + 1, 0);
-			PatchByte(0x7BAD70 + 1, 0);
-			InjectHook(0x7F343D, &D3D10ResolutionContainer::GetDisplayModes_hook);
-		}
-		break;
-	default:
-		return;
+			if (get_private_profile_bool("D3D10_RemoveDuplicateResolutions", TRUE))
+			{
+				// remove interlaced resolutions
+				PatchByte(0x7BAD2E + 1, 0);
+				PatchByte(0x7BAD70 + 1, 0);
+				InjectHook(0x7F343D, &D3D10ResolutionContainer::GetDisplayModes_hook);
+			}
+			break;
+		default:
+			return;
 	}
 
 	patch();
-
 }
 
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpReserved)

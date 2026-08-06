@@ -10,7 +10,7 @@ void InitPrecisionTimer()
 		HMODULE hWinmm = LoadLibraryA("winmm.dll");
 		if (hWinmm)
 		{
-			typedef UINT(WINAPI* pfnTimeBeginPeriod)(UINT uPeriod);
+			typedef UINT(WINAPI * pfnTimeBeginPeriod)(UINT uPeriod);
 			auto pTimeBeginPeriod = (pfnTimeBeginPeriod)GetProcAddress(hWinmm, "timeBeginPeriod");
 			if (pTimeBeginPeriod)
 			{
@@ -59,44 +59,6 @@ void LimitFramerate(int targetFps)
 	}
 
 	lastTime = currentTime;
-}
-
-void CheckXInputReconnect(uint32_t padIndex, bool& connected, bool& inserted, bool& removed)
-{
-	if (connected)
-		return;
-
-	static DWORD lastCheckTime = 0;
-	DWORD now = GetTickCount();
-	if (now - lastCheckTime >= 500)
-	{
-		lastCheckTime = now;
-		typedef DWORD(WINAPI* pfnXInputGetState)(DWORD dwUserIndex, XINPUT_STATE* pState);
-		static pfnXInputGetState pGetState = nullptr;
-		static bool attempted = false;
-		if (!attempted)
-		{
-			attempted = true;
-			HMODULE hXInput = LoadLibraryA("xinput1_3.dll");
-			if (!hXInput) hXInput = LoadLibraryA("xinput1_4.dll");
-			if (!hXInput) hXInput = LoadLibraryA("xinput9_1_0.dll");
-			if (hXInput)
-			{
-				pGetState = (pfnXInputGetState)GetProcAddress(hXInput, "XInputGetState");
-			}
-		}
-
-		if (pGetState)
-		{
-			XINPUT_STATE state;
-			if (pGetState(padIndex, &state) == ERROR_SUCCESS)
-			{
-				connected = true;
-				inserted = true;
-				removed = false;
-			}
-		}
-	}
 }
 
 void ApplyCpuCoreLimit()

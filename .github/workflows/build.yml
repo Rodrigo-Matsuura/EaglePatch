@@ -50,6 +50,9 @@ jobs:
       - name: Build with CMake
         run: cmake --build build --config Release
 
+      - name: Run Unit Tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
       - name: Package Windows Release Archives
         run: |
           New-Item -ItemType Directory -Force -Path dist/EaglePatch+AC1/scripts

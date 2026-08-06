@@ -43,6 +43,8 @@ struct sAddresses
 	static uintptr_t _AddHWGraphicObjectInstances_checkIsCharacter_jumpOut;
 	static uintptr_t HackPlayerOptionsSaveData;
 	static uintptr_t ClassSerializer_EndClass;
+	static char* g_byte_IsFullscreen;
+	static uintptr_t _BorderlessWindow_Engine_InitDirect3DDevice;
 };
 
 
@@ -66,6 +68,8 @@ uintptr_t sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter = 0;
 uintptr_t sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter_jumpOut = 0;
 uintptr_t sAddresses::HackPlayerOptionsSaveData = 0;
 uintptr_t sAddresses::ClassSerializer_EndClass = 0;
+char* sAddresses::g_byte_IsFullscreen = 0;
+uintptr_t sAddresses::_BorderlessWindow_Engine_InitDirect3DDevice = 0;
 
 int NEEDED_KEYBOARD_SET = 0;
 static int g_FramerateLimit = 0;
@@ -77,24 +81,21 @@ auto ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0;
 
 namespace Gear
 {
-	class MemHook
-	{
-	public:
-		static MemHook*** pRef;
+class MemHook
+{
+public:
+	static MemHook*** pRef;
 
-		static MemHook* GetRef()
-		{
-			return **pRef;
-		}
+	static MemHook* GetRef() { return **pRef; }
 
-		virtual void _0() = 0; // most likely dtor
-		virtual void* Alloc(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*) = 0;
-		virtual void _8() = 0;
-		virtual void _12() = 0;
-		virtual void _16() = 0;
-		virtual void Free(int, void*, uint32_t, void*, const char*) = 0;
-	};
+	virtual void _0() = 0; // most likely dtor
+	virtual void* Alloc(int, uint32_t, void*, const void*, const char*, const char*, uint32_t, const char*) = 0;
+	virtual void _8() = 0;
+	virtual void _12() = 0;
+	virtual void _16() = 0;
+	virtual void Free(int, void*, uint32_t, void*, const char*) = 0;
 };
+}; // namespace Gear
 
 Gear::MemHook*** Gear::MemHook::pRef = nullptr;
 
@@ -117,240 +118,220 @@ void ac_delete(void* ptr, void* a2, const char* a3)
 
 namespace scimitar
 {
-	struct Object
+struct Object
+{
+	void** vtable;
+};
+
+struct ManagedObject : Object
+{
+	int m_Flags;
+};
+
+struct PropertyDescriptor;
+
+struct ClassSerializer
+{
+	void EndClass() { ((void(__thiscall*)(ClassSerializer*))sAddresses::ClassSerializer_EndClass)(this); }
+};
+
+class InputBindings;
+
+struct Pad : ManagedObject
+{
+	enum PadType
 	{
-		void** vtable;
+		MouseKeyboardPad = 0,
+		PCPad,
+		XenonPad,
+		PS2Pad,
 	};
 
-	struct ManagedObject : Object
+	enum PadButton
 	{
-		int m_Flags;
+		Button1,
+		Button2,
+		Button3,
+		Button4,
+		PadDown,
+		PadLeft,
+		PadUp,
+		PadRight,
+		Select,
+		Start,
+		ShoulderLeft1,
+		ShoulderLeft2,
+		ShoulderRight1,
+		ShoulderRight2,
+		StickLeft,
+		StickRight,
+		NbButtons,
+		Button_Invalid = -1,
 	};
 
-	struct PropertyDescriptor;
-
-	struct ClassSerializer
+	struct ButtonStates
 	{
-		void EndClass()
-		{
-			((void(__thiscall*)(ClassSerializer*))sAddresses::ClassSerializer_EndClass)(this);
-		}
-	};
-
-	class InputBindings;
-
-	struct Pad : ManagedObject
-	{
-		enum PadType
-		{
-			MouseKeyboardPad = 0,
-			PCPad,
-			XenonPad,
-			PS2Pad,
-		};
-
-		enum PadButton
-		{
-			Button1,
-			Button2,
-			Button3,
-			Button4,
-			PadDown,
-			PadLeft,
-			PadUp,
-			PadRight,
-			Select,
-			Start,
-			ShoulderLeft1,
-			ShoulderLeft2,
-			ShoulderRight1,
-			ShoulderRight2,
-			StickLeft,
-			StickRight,
-			NbButtons,
-			Button_Invalid = -1,
-		};
-
-		struct ButtonStates
-		{
-			bool state[NbButtons];
-
-			bool IsEmpty() const
-			{
-				for (int i = 0; i < NbButtons; i++)
-					if (state[i])
-						return false;
-				return true;
-			}
-		};
-
-		struct AnalogButtonStates
-		{
-			float state[NbButtons];
-		};
-
-		struct __declspec(align(16)) StickState
-		{
-			float x, y;
-
-			bool IsEmpty() const
-			{
-				//return fabsf(x) < 0.1f && fabsf(y) < 0.1f;
-				return x == 0.0f && y == 0.0f;
-			}
-		};
-
-		ButtonStates m_LastFrame;
-		ButtonStates m_ThisFrame;
-		uint64_t m_LastFrameTimeStamp;
-		uint64_t m_ThisFrameTimeStamp;
-		uint64_t m_ButtonPressTimeStamp[NbButtons];
-		uint64_t m_LastFrameEngineTimeStamp;
-		uint64_t m_ThisFrameEngineTimeStamp;
-		uint64_t m_ButtonPressEngineTimeStamp[NbButtons];
-		AnalogButtonStates m_ButtonValues;
-		StickState LeftStick;
-		StickState RightStick;
-		int field_1B0[17];
-		float* vibrationData;
-		char field_1F8[0x390];
-
-		void UpdatePad(InputBindings* a)
-		{
-			((void(__thiscall*)(Pad*, InputBindings*))vtable[15])(this, a);
-		}
-
-		void UpdateTimeStamps()
-		{
-			((void(__thiscall*)(Pad*))sAddresses::Pad_UpdateTimeStamps)(this);
-		}
-
-		void ScaleStickValues()
-		{
-			((void(__thiscall*)(Pad*))sAddresses::Pad_ScaleStickValues)(this);
-		}
+		bool state[NbButtons];
 
 		bool IsEmpty() const
 		{
-			return m_ThisFrame.IsEmpty() && LeftStick.IsEmpty() && RightStick.IsEmpty();
-		}
-	};
-	static_assert(sizeof(Pad) == 0x590, "Pad");
-
-	struct PadXenon : Pad
-	{
-		struct PadState
-		{
-			XINPUT_CAPABILITIES Caps;
-			bool Connected;
-			bool Inserted;
-			bool Removed;
-		};
-
-		uint32_t m_PadIndex;
-		PadState m_PadState;
-
-		PadXenon* _ctor(uint32_t padId)
-		{
-			return ((PadXenon * (__thiscall*)(PadXenon*, uint32_t))sAddresses::PadXenon_ctor)(this, padId);
-		}
-
-		PadXenon(uint32_t padId)
-		{
-			_ctor(padId);
-		}
-		void* operator new(size_t size)
-		{
-			(void)size;
-			return ac_allocate(2, sizeof(PadXenon), ac_getNewDescriptor(sizeof(PadXenon), 16, *sAddresses::_descriptor_var), nullptr, nullptr, nullptr, 0, nullptr);
+			for (int i = 0; i < NbButtons; i++)
+				if (state[i])
+					return false;
+			return true;
 		}
 	};
 
-	static_assert(sizeof(PadXenon) == 0x5b0, "PadXenon");
-
-	struct PadData
+	struct AnalogButtonStates
 	{
-		scimitar::Pad* pad;
-		char field_4[528];
-		InputBindings* pInputBindings;
+		float state[NbButtons];
 	};
 
-	enum PadSets
+	struct __declspec(align(16)) StickState
 	{
-		Keyboard1 = 0,
-		Keyboard2,
-		Keyboard3,
-		Keyboard4,
-		Joy1,
-		Joy2,
-		Joy3,
-		Joy4,
-		NbPadSets,
-	};
+		float x, y;
 
-	struct PadProxyPC;
-	struct PadXenon;
-	static PadProxyPC* pPad = nullptr;
-	static PadXenon* padXenon = nullptr;
-
-	struct PadProxyPC : Pad
-	{
-		int field_590;
-		uint32_t selectedPad;
-		int field_598;
-		scimitar::PadData pads[NbPadSets];
-
-		bool AddPad(scimitar::Pad* a, PadType b, const wchar_t* c, uint16_t d, uint16_t e)
+		bool IsEmpty() const
 		{
-			return ((bool(__thiscall*)(PadProxyPC*, scimitar::Pad*, PadType, const wchar_t*, uint16_t, uint16_t))sAddresses::PadProxyPC_AddPad)(this,a,b,c,d,e);
+			//return fabsf(x) < 0.1f && fabsf(y) < 0.1f;
+			return x == 0.0f && y == 0.0f;
+		}
+	};
+
+	ButtonStates m_LastFrame;
+	ButtonStates m_ThisFrame;
+	uint64_t m_LastFrameTimeStamp;
+	uint64_t m_ThisFrameTimeStamp;
+	uint64_t m_ButtonPressTimeStamp[NbButtons];
+	uint64_t m_LastFrameEngineTimeStamp;
+	uint64_t m_ThisFrameEngineTimeStamp;
+	uint64_t m_ButtonPressEngineTimeStamp[NbButtons];
+	AnalogButtonStates m_ButtonValues;
+	StickState LeftStick;
+	StickState RightStick;
+	int field_1B0[17];
+	float* vibrationData;
+	char field_1F8[0x390];
+
+	void UpdatePad(InputBindings* a) { ((void(__thiscall*)(Pad*, InputBindings*))vtable[15])(this, a); }
+
+	void UpdateTimeStamps() { ((void(__thiscall*)(Pad*))sAddresses::Pad_UpdateTimeStamps)(this); }
+
+	void ScaleStickValues() { ((void(__thiscall*)(Pad*))sAddresses::Pad_ScaleStickValues)(this); }
+
+	bool IsEmpty() const { return m_ThisFrame.IsEmpty() && LeftStick.IsEmpty() && RightStick.IsEmpty(); }
+};
+static_assert(sizeof(Pad) == 0x590, "Pad");
+
+struct PadXenon : Pad
+{
+	struct PadState
+	{
+		XINPUT_CAPABILITIES Caps;
+		bool Connected;
+		bool Inserted;
+		bool Removed;
+	};
+
+	uint32_t m_PadIndex;
+	PadState m_PadState;
+
+	PadXenon* _ctor(uint32_t padId) { return ((PadXenon * (__thiscall*)(PadXenon*, uint32_t)) sAddresses::PadXenon_ctor)(this, padId); }
+
+	PadXenon(uint32_t padId) { _ctor(padId); }
+	void* operator new(size_t size)
+	{
+		(void)size;
+		return ac_allocate(2, sizeof(PadXenon), ac_getNewDescriptor(sizeof(PadXenon), 16, *sAddresses::_descriptor_var), nullptr, nullptr, nullptr, 0, nullptr);
+	}
+};
+
+static_assert(sizeof(PadXenon) == 0x5b0, "PadXenon");
+
+struct PadData
+{
+	scimitar::Pad* pad;
+	char field_4[528];
+	InputBindings* pInputBindings;
+};
+
+enum PadSets
+{
+	Keyboard1 = 0,
+	Keyboard2,
+	Keyboard3,
+	Keyboard4,
+	Joy1,
+	Joy2,
+	Joy3,
+	Joy4,
+	NbPadSets,
+};
+
+struct PadProxyPC;
+struct PadXenon;
+static PadProxyPC* pPad = nullptr;
+static PadXenon* padXenon = nullptr;
+
+struct PadProxyPC : Pad
+{
+	int field_590;
+	uint32_t selectedPad;
+	int field_598;
+	scimitar::PadData pads[NbPadSets];
+
+	bool AddPad(scimitar::Pad* a, PadType b, const wchar_t* c, uint16_t d, uint16_t e)
+	{
+		return ((bool(__thiscall*)(PadProxyPC*, scimitar::Pad*, PadType, const wchar_t*, uint16_t, uint16_t))sAddresses::PadProxyPC_AddPad)(this, a, b, c, d,
+																																			e);
+	}
+
+	void Update()
+	{
+		LimitFramerate(g_FramerateLimit);
+
+		CheckXInputReconnect(padXenon);
+
+		if (selectedPad != (uint32_t)NEEDED_KEYBOARD_SET && selectedPad != Joy1)
+			selectedPad = (uint32_t)NEEDED_KEYBOARD_SET;
+
+		if (pads[(size_t)NEEDED_KEYBOARD_SET].pad)
+			pads[(size_t)NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[(size_t)NEEDED_KEYBOARD_SET].pInputBindings);
+		if (pads[Joy1].pad)
+			pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
+
+		// see if current pad is empty or disconnected
+		if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
+		{
+			uint32_t i = selectedPad == (uint32_t)NEEDED_KEYBOARD_SET ? Joy1 : (uint32_t)NEEDED_KEYBOARD_SET;
+			// if the other pad is connected and active, or if current pad is disconnected, switch
+			if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
+				selectedPad = i;
 		}
 
-		void Update()
+		if (pads[selectedPad].pad)
 		{
-			LimitFramerate(g_FramerateLimit);
+			m_LastFrame = m_ThisFrame;
+			m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
+			LeftStick = pads[selectedPad].pad->LeftStick;
+			RightStick = pads[selectedPad].pad->RightStick;
 
-			CheckXInputReconnect(padXenon);
-
-			if (selectedPad != (uint32_t)NEEDED_KEYBOARD_SET && selectedPad != Joy1)
-				selectedPad = (uint32_t)NEEDED_KEYBOARD_SET;
-
-			if (pads[(size_t)NEEDED_KEYBOARD_SET].pad)
-				pads[(size_t)NEEDED_KEYBOARD_SET].pad->UpdatePad(pads[(size_t)NEEDED_KEYBOARD_SET].pInputBindings);
-			if (pads[Joy1].pad)
-				pads[Joy1].pad->UpdatePad(pads[Joy1].pInputBindings);
-
-			// see if current pad is empty or disconnected
-			if (!pads[selectedPad].pad || pads[selectedPad].pad->IsEmpty())
+			if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
+				m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
+			else
 			{
-				uint32_t i = selectedPad == (uint32_t)NEEDED_KEYBOARD_SET ? Joy1 : (uint32_t)NEEDED_KEYBOARD_SET;
-				// if the other pad is connected and active, or if current pad is disconnected, switch
-				if (pads[i].pad && (!pads[i].pad->IsEmpty() || !pads[selectedPad].pad))
-					selectedPad = i;
+				// This is what original code does with any pad
+				// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
+				for (uint32_t i = 0; i < NbButtons; i++)
+					m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
 			}
-
-			if (pads[selectedPad].pad)
-			{
-				m_LastFrame = m_ThisFrame;
-				m_ThisFrame = pads[selectedPad].pad->m_ThisFrame;
-				LeftStick = pads[selectedPad].pad->LeftStick;
-				RightStick = pads[selectedPad].pad->RightStick;
-
-				if (selectedPad >= Joy1) // FIX: Use genuine analog values for gamepads
-					m_ButtonValues = pads[selectedPad].pad->m_ButtonValues;
-				else
-				{
-					// This is what original code does with any pad
-					// I didn't bother to check if keyboard code fills m_ButtonValues so I'll leave this in just in case
-					for (uint32_t i = 0; i < NbButtons; i++)
-						m_ButtonValues.state[i] = m_ThisFrame.state[i] ? 1.0f : 0.0f;
-				}
-			}
-
-			UpdateTimeStamps();
 		}
-	};
-	static_assert(sizeof(PadProxyPC) == 0x1660, "PadProxyPC");
-}
+
+		UpdateTimeStamps();
+	}
+};
+static_assert(sizeof(PadProxyPC) == 0x1660, "PadProxyPC");
+} // namespace scimitar
 
 ASM(HackPlayerOptionsSaveData)
 {
@@ -358,9 +339,9 @@ ASM(HackPlayerOptionsSaveData)
 	{
 		sub esi, 0x3D
 
-		//mov byte ptr [esi + 0x32], 1 // Palazzo Medici
-		//mov byte ptr [esi + 0x33], 1 // Basilica di Santa Maria Gloriosa dei Frari
-		//mov byte ptr [esi + 0x34], 1 // Arsenale di Venezia
+	 //mov byte ptr [esi + 0x32], 1 // Palazzo Medici
+	 //mov byte ptr [esi + 0x33], 1 // Basilica di Santa Maria Gloriosa dei Frari
+	 //mov byte ptr [esi + 0x34], 1 // Arsenale di Venezia
 
 		mov byte ptr [esi + 0x36], 1 // Bonus dye
 
@@ -420,7 +401,7 @@ ASM(_AddHWGraphicObjectInstances_checkIsCharacter)
 		test cl, 1
 		jz _checkIsCharacter_out
 
-		// force lod0
+		 // force lod0
 		xor eax, eax
 		mov [ebp-10h], eax
 
@@ -432,8 +413,80 @@ _checkIsCharacter_out:
 	}
 }
 
+void MakeBorderlessWindow(HWND hwnd)
+{
+	typedef LONG (WINAPI *pfnGetWindowLongA)(HWND hWnd, int nIndex);
+	typedef LONG (WINAPI *pfnSetWindowLongA)(HWND hWnd, int nIndex, LONG dwNewLong);
+
+	HMODULE hUser32 = GetModuleHandleA("user32.dll");
+	if (!hUser32) hUser32 = LoadLibraryA("user32.dll");
+	if (!hUser32) return;
+
+	pfnGetWindowLongA pGetWindowLong = (pfnGetWindowLongA)GetProcAddress(hUser32, "GetWindowLongA");
+	pfnSetWindowLongA pSetWindowLong = (pfnSetWindowLongA)GetProcAddress(hUser32, "SetWindowLongA");
+
+	if (!pGetWindowLong || !pSetWindowLong) return;
+
+	LONG style = pGetWindowLong(hwnd, GWL_STYLE);
+	LONG exStyle = pGetWindowLong(hwnd, GWL_EXSTYLE);
+
+	style &= ~(WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
+	exStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_COMPOSITED | WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_LAYERED | WS_EX_STATICEDGE | WS_EX_TOOLWINDOW | WS_EX_APPWINDOW);
+
+	pSetWindowLong(hwnd, GWL_STYLE, style);
+	pSetWindowLong(hwnd, GWL_EXSTYLE, exStyle);
+}
+
+typedef void (__thiscall *Delegate_BorderlessWindow_InitDirect3DDevice)(void*, HWND, int*);
+static Delegate_BorderlessWindow_InitDirect3DDevice Ivk_Delegate_BorderlessWindow_InitDirect3DDevice;
+
+void __fastcall Hook_BorderlessWindow_InitDirect3DDevice(void* _this, void*, HWND hwnd, int* extra)
+{
+	if (sAddresses::g_byte_IsFullscreen)
+	{
+		*sAddresses::g_byte_IsFullscreen = 0;
+	}
+
+	HMODULE hUser32 = GetModuleHandleA("user32.dll");
+	if (!hUser32) hUser32 = LoadLibraryA("user32.dll");
+
+	typedef int (WINAPI *pfnGetSystemMetrics)(int nIndex);
+	typedef BOOL (WINAPI *pfnSetWindowPos)(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
+
+	int width = 1920;
+	int height = 1080;
+	pfnSetWindowPos pSetWindowPos = nullptr;
+
+	if (hUser32)
+	{
+		pfnGetSystemMetrics pGetSystemMetrics = (pfnGetSystemMetrics)GetProcAddress(hUser32, "GetSystemMetrics");
+		pSetWindowPos = (pfnSetWindowPos)GetProcAddress(hUser32, "SetWindowPos");
+		if (pGetSystemMetrics)
+		{
+			width = pGetSystemMetrics(SM_CXSCREEN);
+			height = pGetSystemMetrics(SM_CYSCREEN);
+		}
+	}
+
+	MakeBorderlessWindow(hwnd);
+
+	if (pSetWindowPos)
+	{
+		pSetWindowPos(hwnd, HWND_TOP, 0, 0, width, height, SWP_SHOWWINDOW | SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOSENDCHANGING);
+	}
+
+	Ivk_Delegate_BorderlessWindow_InitDirect3DDevice(_this, hwnd, extra);
+}
+
 void patch()
 {
+	if (get_private_profile_bool("BorderlessWindow", FALSE))
+	{
+		if (sAddresses::_BorderlessWindow_Engine_InitDirect3DDevice != 0)
+		{
+			InterceptCall(&Ivk_Delegate_BorderlessWindow_InitDirect3DDevice, &Hook_BorderlessWindow_InitDirect3DDevice, sAddresses::_BorderlessWindow_Engine_InitDirect3DDevice);
+		}
+	}
 	if (get_private_profile_bool("LimitCpuCores", FALSE))
 	{
 		ApplyCpuCoreLimit();
@@ -454,9 +507,9 @@ void patch()
 	if (get_private_profile_bool("ImproveDrawDistance", TRUE))
 	{
 		BYTE patch[] = {
-			0x58, // pop eax
+			0x58,		// pop eax
 			0x31, 0xC0, // xor eax, eax
-			0x90, 0x90 // nop; nop
+			0x90, 0x90	// nop; nop
 		};
 		PatchBytes(sAddresses::_forceLod0_cloth, patch);
 
@@ -471,8 +524,10 @@ void patch()
 	}
 
 	NEEDED_KEYBOARD_SET = get_private_profile_int("KeyboardLayout", scimitar::PadSets::Keyboard1);
-	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
-	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4) NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
+	if (NEEDED_KEYBOARD_SET < scimitar::PadSets::Keyboard1)
+		NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard1;
+	else if (NEEDED_KEYBOARD_SET > scimitar::PadSets::Keyboard4)
+		NEEDED_KEYBOARD_SET = scimitar::PadSets::Keyboard4;
 
 	g_FramerateLimit = get_private_profile_int("FramerateLimit", 0);
 	g_FixAspectRatio = get_private_profile_bool("FixAspectRatio", FALSE);
@@ -504,76 +559,79 @@ void InitAddresses(eExeVersion exeVersion, HMODULE hModule)
 {
 	init_private_profile(hModule);
 #ifdef INCLUDE_CONSOLE
-	if (get_private_profile_bool("AllocConsole", FALSE)) init_console();
+	if (get_private_profile_bool("AllocConsole", FALSE))
+		init_console();
 #endif
 	switch (exeVersion)
 	{
-	case RETAIL_1_01:
-		sAddresses::Pad_UpdateTimeStamps = 0x9EE7D0;
-		sAddresses::Pad_ScaleStickValues = 0x9EF040;
-		sAddresses::PadXenon_ctor = 0x9C9080;
-		sAddresses::PadProxyPC_AddPad = 0x9C8860;
-		sAddresses::_addXenonJoy_Patch = 0x9C99A5;
-		sAddresses::_addXenonJoy_JumpOut = 0x9C99BC;
-		sAddresses::_PadProxyPC_Patch = 0x9C71B0;
-		sAddresses::_descriptor_var = (uint32_t*)0x2214F20;
-		sAddresses::_delete_class = (void**)0x220CA08;
-		sAddresses::_ps3_controls[0] = 0xA52C16 + 2;
-		sAddresses::_ps3_controls[1] = 0xA52C33 + 2;
-		sAddresses::_ps3_controls[2] = 0xA52CDA + 2;
-		sAddresses::_ps3_controls[3] = 0xA52CDD + 2;
-		sAddresses::_ps3_controls_analog[0] = 0xA52CA0 + 4;
-		sAddresses::_ps3_controls_analog[1] = 0xA52CCF + 4;
-		sAddresses::_ps3_controls_analog[2] = 0xA52CF3 + 4;
-		sAddresses::_ps3_controls_analog[3] = 0xA52D09 + 4;
-		sAddresses::_skipIntroVideos = 0x4148EE;
-		sAddresses::_shadowMapSize = 0xAB9C13 + 3;
-		sAddresses::_forceLod0_cloth = 0xAFCE43;
-		sAddresses::_GetLODLevelFromDistance_forceMaxLod = 0x5495AF;
-		sAddresses::_AddHWGraphicObjectInstances_forceLod0 = 0xAFCF8C;
-		sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter = 0xAFD11F;
-		sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter_jumpOut = 0xAFD126;
-		sAddresses::HackPlayerOptionsSaveData = 0x10B06B3;
-		sAddresses::ClassSerializer_EndClass = 0x9FB540;
+		case RETAIL_1_01:
+			sAddresses::Pad_UpdateTimeStamps = 0x9EE7D0;
+			sAddresses::Pad_ScaleStickValues = 0x9EF040;
+			sAddresses::PadXenon_ctor = 0x9C9080;
+			sAddresses::PadProxyPC_AddPad = 0x9C8860;
+			sAddresses::_addXenonJoy_Patch = 0x9C99A5;
+			sAddresses::_addXenonJoy_JumpOut = 0x9C99BC;
+			sAddresses::_PadProxyPC_Patch = 0x9C71B0;
+			sAddresses::_descriptor_var = (uint32_t*)0x2214F20;
+			sAddresses::_delete_class = (void**)0x220CA08;
+			sAddresses::_ps3_controls[0] = 0xA52C16 + 2;
+			sAddresses::_ps3_controls[1] = 0xA52C33 + 2;
+			sAddresses::_ps3_controls[2] = 0xA52CDA + 2;
+			sAddresses::_ps3_controls[3] = 0xA52CDD + 2;
+			sAddresses::_ps3_controls_analog[0] = 0xA52CA0 + 4;
+			sAddresses::_ps3_controls_analog[1] = 0xA52CCF + 4;
+			sAddresses::_ps3_controls_analog[2] = 0xA52CF3 + 4;
+			sAddresses::_ps3_controls_analog[3] = 0xA52D09 + 4;
+			sAddresses::_skipIntroVideos = 0x4148EE;
+			sAddresses::_shadowMapSize = 0xAB9C13 + 3;
+			sAddresses::_forceLod0_cloth = 0xAFCE43;
+			sAddresses::_GetLODLevelFromDistance_forceMaxLod = 0x5495AF;
+			sAddresses::_AddHWGraphicObjectInstances_forceLod0 = 0xAFCF8C;
+			sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter = 0xAFD11F;
+			sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter_jumpOut = 0xAFD126;
+			sAddresses::HackPlayerOptionsSaveData = 0x10B06B3;
+			sAddresses::ClassSerializer_EndClass = 0x9FB540;
 
-		ac_getNewDescriptor = (void* (__cdecl*)(uint32_t, uint32_t, uint32_t))0x9D9030;
-		ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x4236A0;
-		Gear::MemHook::pRef = (Gear::MemHook***)0x220CA04;
-		break;
-	case DIGITAL_UPLAY:
-		sAddresses::Pad_UpdateTimeStamps = 0x14B20C0;
-		sAddresses::Pad_ScaleStickValues = 0x14B2930;
-		sAddresses::PadXenon_ctor = 0x148CF50;
-		sAddresses::PadProxyPC_AddPad = 0x148C730;
-		sAddresses::_addXenonJoy_Patch = 0x148D885;
-		sAddresses::_addXenonJoy_JumpOut = 0x148D89C;
-		sAddresses::_PadProxyPC_Patch = 0x148AFA0;
-		sAddresses::_descriptor_var = (uint32_t*)0x223DDE8;
-		sAddresses::_delete_class = (void**)0x223A3A8;
-		sAddresses::_ps3_controls[0] = 0x1515EC6 + 2;
-		sAddresses::_ps3_controls[1] = 0x1515EE3 + 2;
-		sAddresses::_ps3_controls[2] = 0x1515F8A + 2;
-		sAddresses::_ps3_controls[3] = 0x1515F8D + 2;
-		sAddresses::_ps3_controls_analog[0] = 0x1515F58 + 4;
-		sAddresses::_ps3_controls_analog[1] = 0x1515F7F + 4;
-		sAddresses::_ps3_controls_analog[2] = 0x1515FA3 + 4;
-		sAddresses::_ps3_controls_analog[3] = 0x1515FB9 + 4;
-		sAddresses::_skipIntroVideos = 0x41494E;
-		sAddresses::_shadowMapSize = 0x157CD73 + 3;
-		sAddresses::_forceLod0_cloth = 0x15BFBB3;
-		sAddresses::_GetLODLevelFromDistance_forceMaxLod = 0x51FB1F;
-		sAddresses::_AddHWGraphicObjectInstances_forceLod0 = 0x15BFCFC;
-		sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter = 0x15BFE8F;
-		sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter_jumpOut = 0x15BFE96;
-		sAddresses::HackPlayerOptionsSaveData = 0xAD4723;
-		sAddresses::ClassSerializer_EndClass = 0x14BEB50;
+			ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x9D9030;
+			ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x4236A0;
+			Gear::MemHook::pRef = (Gear::MemHook***)0x220CA04;
+			break;
+		case DIGITAL_UPLAY:
+			sAddresses::Pad_UpdateTimeStamps = 0x14B20C0;
+			sAddresses::Pad_ScaleStickValues = 0x14B2930;
+			sAddresses::PadXenon_ctor = 0x148CF50;
+			sAddresses::PadProxyPC_AddPad = 0x148C730;
+			sAddresses::_addXenonJoy_Patch = 0x148D885;
+			sAddresses::_addXenonJoy_JumpOut = 0x148D89C;
+			sAddresses::_PadProxyPC_Patch = 0x148AFA0;
+			sAddresses::_descriptor_var = (uint32_t*)0x223DDE8;
+			sAddresses::_delete_class = (void**)0x223A3A8;
+			sAddresses::_ps3_controls[0] = 0x1515EC6 + 2;
+			sAddresses::_ps3_controls[1] = 0x1515EE3 + 2;
+			sAddresses::_ps3_controls[2] = 0x1515F8A + 2;
+			sAddresses::_ps3_controls[3] = 0x1515F8D + 2;
+			sAddresses::_ps3_controls_analog[0] = 0x1515F58 + 4;
+			sAddresses::_ps3_controls_analog[1] = 0x1515F7F + 4;
+			sAddresses::_ps3_controls_analog[2] = 0x1515FA3 + 4;
+			sAddresses::_ps3_controls_analog[3] = 0x1515FB9 + 4;
+			sAddresses::_skipIntroVideos = 0x41494E;
+			sAddresses::_shadowMapSize = 0x157CD73 + 3;
+			sAddresses::_forceLod0_cloth = 0x15BFBB3;
+			sAddresses::_GetLODLevelFromDistance_forceMaxLod = 0x51FB1F;
+			sAddresses::_AddHWGraphicObjectInstances_forceLod0 = 0x15BFCFC;
+			sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter = 0x15BFE8F;
+			sAddresses::_AddHWGraphicObjectInstances_checkIsCharacter_jumpOut = 0x15BFE96;
+			sAddresses::HackPlayerOptionsSaveData = 0xAD4723;
+			sAddresses::ClassSerializer_EndClass = 0x14BEB50;
+			sAddresses::g_byte_IsFullscreen = (char*)0x02210a73;
+			sAddresses::_BorderlessWindow_Engine_InitDirect3DDevice = 0x015d76d7;
 
-		ac_getNewDescriptor = (void* (__cdecl*)(uint32_t, uint32_t, uint32_t))0x149CAD0;
-		ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x4236A0;
-		Gear::MemHook::pRef = (Gear::MemHook***)0x223A3A4;
-		break;
-	default:
-		return;
+			ac_getNewDescriptor = (void*(__cdecl*)(uint32_t, uint32_t, uint32_t))0x149CAD0;
+			ac_getDeleteDescriptor = (uint32_t(__thiscall*)(void*, void*))0x4236A0;
+			Gear::MemHook::pRef = (Gear::MemHook***)0x223A3A4;
+			break;
+		default:
+			return;
 	}
 	patch();
 }

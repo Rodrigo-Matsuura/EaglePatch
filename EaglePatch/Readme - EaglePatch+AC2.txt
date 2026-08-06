@@ -1,15 +1,16 @@
 EaglePatch+AC2 is an ASI plugin that fixes a number of issues in Assassin's Creed II
 
-Plugin version: 1.3
+Plugin version: 1.4
 
 Features:
 - Improved shadow map size from 1024 to 4096 (only when shadow quality is maxed out in game's settings; can be disabled in ini)
 - Draw distance maxed out for buildings, peds and flags (can be disabled in ini)
 - Added high-precision framerate limiter (FramerateLimit) to prevent physics glitches on high refresh rate monitors (>60 FPS)
 - Added ultrawide aspect ratio fix (21:9, 32:9) and field of view (FOV) multiplier options in ini
-- Enables UPlay bonuses - Auditore Crypt, Altair robes, extra knifes, bonus dye (can be disabled in ini)
+- Added borderless windowed mode option (BorderlessWindow) in ini (currently supported on AC2 Digital UPlay)
+- Enables UPlay bonuses - Auditore Crypt, Altair robes, extra knives, bonus dye (can be disabled in ini)
 - Added support of all XInput controllers, including PS4/PS5 controllers via standard wrappers/Steam Input (can be disabled in ini)
-- Added detection of hotplugged controllers (can be disabled in ini)
+- Added dynamic 4-slot XInput auto-reconnect scanning for seamless controller hotplugging
 - Removed support of DInput controllers (can be disabled in ini)
 - Gamepad and kb/mouse controls work at the same time (read note below)
 - Added ini setting for enabling PS3/PS4/PS5-like controls (swapping bumpers and triggers)

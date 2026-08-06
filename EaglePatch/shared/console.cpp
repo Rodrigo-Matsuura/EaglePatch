@@ -4,6 +4,7 @@
 
 FILE* conin = NULL;
 FILE* conout = NULL;
+FILE* conerr = NULL;
 
 void init_console()
 {
@@ -11,5 +12,5 @@ void init_console()
 
 	freopen_s(&conin, "conin$", "r", stdin);
 	freopen_s(&conout, "conout$", "w", stdout);
-	freopen_s(&conout, "conout$", "w", stderr);
+	freopen_s(&conerr, "conout$", "w", stderr);
 }

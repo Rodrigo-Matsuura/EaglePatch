@@ -2,9 +2,10 @@
 
 #include "patcher.h"
 
-StaticPatcher *StaticPatcher::ms_head;
+StaticPatcher* StaticPatcher::ms_head;
 
-StaticPatcher::StaticPatcher(Patcher func) : m_func(func)
+StaticPatcher::StaticPatcher(Patcher func)
+	: m_func(func)
 {
 	m_next = ms_head;
 	ms_head = this;
@@ -12,7 +13,7 @@ StaticPatcher::StaticPatcher(Patcher func) : m_func(func)
 
 void StaticPatcher::Apply()
 {
-	StaticPatcher *current = ms_head;
+	StaticPatcher* current = ms_head;
 
 	while (current)
 	{
@@ -23,12 +24,12 @@ void StaticPatcher::Apply()
 	ms_head = NULL;
 }
 
-int Unprotect_internal(void *address, size_t size, DWORD* oldProtect)
+BOOL Unprotect_internal(void* address, size_t size, DWORD* oldProtect)
 {
 	return VirtualProtect(address, size, PAGE_EXECUTE_READWRITE, oldProtect);
 }
 
-int Protect_internal(void *address, size_t size, DWORD oldProtect)
+BOOL Protect_internal(void* address, size_t size, DWORD oldProtect)
 {
 	DWORD dummy;
 	return VirtualProtect(address, size, oldProtect, &dummy);
